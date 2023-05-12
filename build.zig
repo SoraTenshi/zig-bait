@@ -10,6 +10,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    lib.addLibraryPath("src/fn_ptr");
+
     b.installArtifact(lib);
 
     const main_tests = b.addTest(.{
