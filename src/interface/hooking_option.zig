@@ -1,8 +1,11 @@
+/// The options for the Virtual Method Table hook
 pub const VmtOption = struct {
-    base: *[*c]usize,
-    offset: usize,
+    // The base pointer to the Virtual Function Table
+    base: [*c]usize,
+    // The index of the function to be hooked
     index: usize,
-    original: ?usize,
+    // The original Virtual Function Table
+    original: [*c]usize,
 };
 
 pub const HookingOption = union(enum) {
