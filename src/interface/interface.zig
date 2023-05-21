@@ -8,8 +8,8 @@ pub const Hook = struct {
 
     hook_option: option.HookingOption,
 
-    hook: *const fn (self: *Self) anyerror!void,
-    restore: *const fn (self: *Self) void,
+    hook: *const fn (option: *option.HookingOption) anyerror!void,
+    restore: *const fn (option: *option.HookingOption) void,
 
     pub fn init(hook: anytype, restore: anytype, hook_option: option.HookingOption) Self {
         fn_ptr.checkIfFnPtr(hook);
@@ -25,19 +25,19 @@ pub const Hook = struct {
     }
 
     pub fn do_hook(self: *Self) !void {
-        try self.hook(self);
+        try self.hook(&self.hook_option);
     }
 
     pub fn do_restore(self: *Self) !void {
-        self.restore();
+        self.restore(&self.hook_option);
     }
 };
 
-fn h(_: *Hook) anyerror!void {
+fn h(_: *option.HookingOption) anyerror!void {
     return error.Nice;
 }
 
-fn u(_: *Hook) void {
+fn u(_: *option.HookingOption) void {
     return;
 }
 

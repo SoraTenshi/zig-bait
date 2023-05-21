@@ -4,12 +4,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const win = b.dependency("zigwin32", .{});
     const lib = b.addStaticLibrary(.{
         .name = "zig-bait",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
+    lib.addModule("zigwin32", win.module("zigwin32"));
     lib.addLibraryPath("src/fn_ptr");
 
     b.installArtifact(lib);

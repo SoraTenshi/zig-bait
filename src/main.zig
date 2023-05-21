@@ -1,1 +1,1 @@
-const std = @import("std");
+pub usingnamespace @import("interface/vmt.zig");

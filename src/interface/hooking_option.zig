@@ -6,6 +6,17 @@ pub const VmtOption = struct {
     index: usize,
     // The original Virtual Function Table
     original: [*c]usize,
+    // The target that should be hooked
+    target: usize,
+
+    pub fn init(base: [*]usize, index: usize, target: usize) VmtOption {
+        return VmtOption{
+            .base = base,
+            .index = index,
+            .original = base,
+            .target = target,
+        };
+    }
 };
 
 pub const HookingOption = union(enum) {

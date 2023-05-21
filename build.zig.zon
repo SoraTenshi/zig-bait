@@ -1,0 +1,11 @@
+.{
+    .name = "zig-bait",
+    .version = "0.0.0",
+
+    .dependencies = .{
+        .zigwin32 = .{
+            .url = "https://github.com/fabioarnold/zigwin32/archive/b70e7f818d77a0c0f39b0bd9c549e16439ff5780.tar.gz",
+            .hash = "122037145d96670bcd62b87a00a1d0924053760c73bca6ea6daabfcf9a94855395ef",
+        }
+    }
+}
