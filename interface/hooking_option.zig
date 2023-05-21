@@ -1,20 +1,20 @@
 /// The options for the Virtual Method Table hook
 pub const VmtOption = struct {
     // The base pointer to the Virtual Function Table
-    base: [*c]usize,
+    base: [*]usize,
     // The index of the function to be hooked
     index: usize,
-    // The original Virtual Function Table
-    original: [*c]usize,
     // The target that should be hooked
     target: usize,
+    // The restore address. used internally.
+    restore: ?usize,
 
     pub fn init(base: [*]usize, index: usize, target: usize) VmtOption {
         return VmtOption{
             .base = base,
             .index = index,
-            .original = base,
             .target = target,
+            .restore = null,
         };
     }
 };

@@ -12,14 +12,15 @@ const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: anytype) Address {
+    pub fn init(ptr_type: [*]usize) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
-                .win_addr = @as(win.LPVOID, ptr_type),
+                .win_addr = @ptrCast(win.LPVOID, ptr_type),
             },
             .linux => Address{
-                .lin_addr = @as([*]const u8, ptr_type),
+                .lin_addr = @ptrCast([*]const u8, ptr_type),
             },
+            else => |a| @panic("The OS '" ++ @tagName(a) ++ "' is not supported."),
         };
     }
 };
@@ -45,50 +46,52 @@ pub fn setNewProtect(address: Address, size: usize, new_protect: usize) anyerror
     switch (address) {
         inline .win_addr => |addr| {
             var old: win.DWORD = undefined;
-            try win.VirtualProtect(addr, @as(win.SIZE_T, size), @as(win.DWORD, new_protect), &old);
+            try win.VirtualProtect(addr, @as(win.SIZE_T, size), @intCast(win.DWORD, new_protect), &old);
             return @as(usize, old);
         },
         inline .lin_addr => |addr| {
             if (lin.mprotect(addr, size, new_protect) != 0) return error.LinuxMProtectFailed;
             return null;
         },
-        inline else => return error.OSNotSupported,
     }
 }
 
 fn hook(option: *ho.HookingOption) anyerror!void {
-    const unwrapped = switch (option) {
+    var unwrapped = switch (option.*) {
         .vmt_option => |opt| opt,
-        else => return error.WrongHookingMethod,
     };
 
     const ptr = Address.init(unwrapped.base);
 
-    const old = try setNewProtect(ptr, @sizeOf(usize), Flags.readwrite);
+    const new_flags = getFlags(Flags.readwrite);
+
+    const old = try setNewProtect(ptr, unwrapped.index, new_flags);
 
     var lin_old: usize = undefined;
     if (builtin.os.tag == .linux) {
         lin_old = getFlags(Flags.read);
     }
 
+    unwrapped.restore = unwrapped.base[unwrapped.index];
     unwrapped.base[unwrapped.index] = unwrapped.target;
 
-    _ = try setNewProtect(ptr, @sizeOf(usize), old orelse lin_old);
+    _ = try setNewProtect(ptr, unwrapped.index, old orelse lin_old);
 }
 
 fn restore(option: *ho.HookingOption) void {
-    const unwrapped = switch (option) {
+    var unwrapped = switch (option.*) {
         .vmt_option => |opt| opt,
-        else => @panic("Wrong hooking option detected"),
     };
 
-    std.mem.swap([*c]usize, &unwrapped.base, &unwrapped.original);
+    unwrapped.base[unwrapped.index] = unwrapped.restore.?;
     hook(option) catch @panic("Restoring the original vtable failed.");
 }
 
-pub fn initVmtHook(target: anytype, base: [*]usize, index: usize) interface.Hook {
+pub fn initVmtHook(target: anytype, base: [*]usize, index: usize) !interface.Hook {
     isFuncPtr(target);
-    return interface.Hook.init(&hook, &restore, ho.HookingOption{
-        .vmt_option = ho.VmtOption.init(base, index, @ptrToInt(target)),
-    });
+    var opt = ho.VmtOption.init(base, index, @ptrToInt(target));
+    var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
+
+    try self.do_hook();
+    return self;
 }
