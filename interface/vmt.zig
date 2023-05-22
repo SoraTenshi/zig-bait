@@ -57,20 +57,38 @@ pub fn setNewProtect(address: Address, size: usize, new_protect: usize) anyerror
     }
 }
 
+fn debugPrint(option: *ho.HookingOption, comptime str: []const u8) void {
+    const is_debug = switch (option.*) {
+        .vmt_option => |opt| opt.debug,
+    };
+
+    if (is_debug) {
+        std.debug.print(str ++ "\n", .{});
+    }
+}
+
 fn hook(option: *ho.HookingOption) anyerror!void {
+    debugPrint(option, "Entered hook");
     var unwrapped = switch (option.*) {
         .vmt_option => |opt| opt,
     };
 
     const ptr = Address.init(unwrapped.base);
+    debugPrint(option, "Initialized address");
     const new_flags = getFlags(Flags.readwrite);
 
+    debugPrint(option, "About to set new protect");
     const old = try setNewProtect(ptr, unwrapped.index, new_flags) orelse getFlags(Flags.read);
+    debugPrint(option, "Set new protect");
 
+    debugPrint(option, "Swapping pointers..");
     unwrapped.restore = unwrapped.base[unwrapped.index];
     unwrapped.base[unwrapped.index] = unwrapped.target;
+    debugPrint(option, "Swapped.");
 
+    debugPrint(option, "Restore Protection.");
     _ = try setNewProtect(ptr, unwrapped.index, old);
+    debugPrint(option, "Finished hook.");
 }
 
 fn restore(option: *ho.HookingOption) void {
