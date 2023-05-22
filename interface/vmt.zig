@@ -43,14 +43,15 @@ inline fn getFlags(comptime flag: Flags) usize {
 }
 
 pub fn setNewProtect(address: Address, size: usize, new_protect: usize) anyerror!?usize {
+    const len = if (size == 0) @sizeOf(usize) else size * @sizeOf(usize);
     switch (address) {
         inline .win_addr => |addr| {
             var old: win.DWORD = undefined;
-            try win.VirtualProtect(addr, @as(win.SIZE_T, size), @intCast(win.DWORD, new_protect), &old);
+            try win.VirtualProtect(addr, @as(win.SIZE_T, len), @intCast(win.DWORD, new_protect), &old);
             return @as(usize, old);
         },
         inline .lin_addr => |addr| {
-            if (lin.mprotect(addr, size, new_protect) != 0) return error.LinuxMProtectFailed;
+            if (lin.mprotect(addr, len, new_protect) != 0) return error.LinuxMProtectFailed;
             return null;
         },
     }
@@ -62,20 +63,14 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     };
 
     const ptr = Address.init(unwrapped.base);
-
     const new_flags = getFlags(Flags.readwrite);
 
-    const old = try setNewProtect(ptr, unwrapped.index, new_flags);
-
-    var lin_old: usize = undefined;
-    if (builtin.os.tag == .linux) {
-        lin_old = getFlags(Flags.read);
-    }
+    const old = try setNewProtect(ptr, unwrapped.index, new_flags) orelse getFlags(Flags.read);
 
     unwrapped.restore = unwrapped.base[unwrapped.index];
     unwrapped.base[unwrapped.index] = unwrapped.target;
 
-    _ = try setNewProtect(ptr, unwrapped.index, old orelse lin_old);
+    _ = try setNewProtect(ptr, unwrapped.index, old);
 }
 
 fn restore(option: *ho.HookingOption) void {
@@ -87,9 +82,9 @@ fn restore(option: *ho.HookingOption) void {
     hook(option) catch @panic("Restoring the original vtable failed.");
 }
 
-pub fn initVmtHook(target: anytype, base: [*]usize, index: usize) !interface.Hook {
+pub fn init(target: anytype, base: [*]usize, index: usize) !interface.Hook {
     isFuncPtr(target);
-    var opt = ho.VmtOption.init(base, index, @ptrToInt(target));
+    var opt = ho.VmtOption.init(base, index, @ptrToInt(target), null);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
 
     try self.do_hook();

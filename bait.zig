@@ -1,4 +1,5 @@
-pub usingnamespace @import("interface/vmt.zig");
+// All the VMT utils
+pub const vmt = @import("interface/vmt.zig");
 
 const HookingInterface = @import("interface/interface.zig").Hook;
 
