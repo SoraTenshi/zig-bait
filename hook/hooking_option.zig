@@ -3,7 +3,7 @@ const fn_ptr = @import("fn_ptr/func_ptr.zig");
 /// The options for the Virtual Method Table hook
 pub const VmtOption = struct {
     /// The base pointer to the Virtual Function Table
-    base: [*]usize,
+    vtable: *[*]usize,
     /// The index of the function to be hooked
     index: usize,
     /// The target that should be hooked
@@ -15,9 +15,9 @@ pub const VmtOption = struct {
     /// Vtable length. Currently unused
     fn_length: ?usize,
 
-    pub fn init(base: [*]usize, index: usize, target: usize, fn_length: ?usize) VmtOption {
+    pub fn init(vtable: *[*]usize, index: usize, target: usize, fn_length: ?usize) VmtOption {
         return VmtOption{
-            .base = base,
+            .vtable = vtable,
             .index = index,
             .target = target,
             .restore = null,

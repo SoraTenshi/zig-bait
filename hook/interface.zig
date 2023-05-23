@@ -42,14 +42,14 @@ fn u(_: *option.HookingOption) void {
 }
 
 test {
-    var c = try std.testing.allocator.create([*c]usize);
+    var c = try std.testing.allocator.create([*]usize);
     defer std.testing.allocator.destroy(c);
 
-    var b = try std.testing.allocator.create([*c]usize);
+    var b = try std.testing.allocator.create([*]usize);
     defer std.testing.allocator.destroy(b);
 
     var hook = Hook.init(&h, &u, option.HookingOption{ .vmt_option = option.VmtOption{
-        .base = c.*,
+        .base = c,
         .index = 0x0,
         .original = b.*,
     } });

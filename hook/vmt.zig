@@ -73,7 +73,7 @@ fn hook(option: *ho.HookingOption) anyerror!void {
         .vmt_option => |*opt| opt,
     };
 
-    const ptr = Address.init(unwrapped.base);
+    const ptr = Address.init(unwrapped.vtable.*);
     debugPrint(option, "Initialized address");
     const new_flags = getFlags(Flags.readwrite);
 
@@ -83,8 +83,8 @@ fn hook(option: *ho.HookingOption) anyerror!void {
 
     debugPrint(option, "Swapping pointers..");
 
-    unwrapped.restore = unwrapped.base[unwrapped.index];
-    unwrapped.base[unwrapped.index] = unwrapped.target;
+    unwrapped.restore = unwrapped.vtable.*[unwrapped.index];
+    unwrapped.vtable.*[unwrapped.index] = unwrapped.target;
 
     debugPrint(option, "Swapped.");
 
@@ -98,13 +98,13 @@ fn restore(option: *ho.HookingOption) void {
         .vmt_option => |*opt| opt,
     };
 
-    unwrapped.base[unwrapped.index] = unwrapped.restore.?;
+    unwrapped.vtable.*[unwrapped.index] = unwrapped.restore.?;
     hook(option) catch @panic("Restoring the original vtable failed.");
 }
 
-pub fn init(target: anytype, base: [*]usize, index: usize) !interface.Hook {
+pub fn init(target: anytype, vtable: *[*]usize, index: usize) !interface.Hook {
     isFuncPtr(target);
-    var opt = ho.VmtOption.init(base, index, @ptrToInt(target), null);
+    var opt = ho.VmtOption.init(vtable, index, @ptrToInt(target), null);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
 
     try self.do_hook();
