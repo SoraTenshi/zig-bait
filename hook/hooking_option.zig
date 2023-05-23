@@ -35,7 +35,7 @@ pub const VmtOption = struct {
         fn_ptr.checkIfFnPtr(hooked_func);
 
         if (self.restore) |restore| {
-            return @intToPtr(@TypeOf(hooked_func), restore);
+            return @intToPtr(@TypeOf(hooked_func), @ptrToInt(&restore));
         } else {
             return error.RestoreValueIsNull;
         }
