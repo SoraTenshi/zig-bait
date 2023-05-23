@@ -1,7 +1,7 @@
 // All the VMT utils
-pub const vmt = @import("interface/vmt.zig");
+pub const vmt = @import("hook/vmt.zig");
 
-const HookingInterface = @import("interface/interface.zig").Hook;
+const HookingInterface = @import("hook/interface.zig").Hook;
 
 pub const HookArrayList = @import("std").ArrayList(HookingInterface);
 pub var global_hooks: ?HookArrayList = null;

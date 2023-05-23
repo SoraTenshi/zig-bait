@@ -3,6 +3,8 @@ const builtin = @import("builtin");
 const win = std.os.windows;
 const lin = std.os.linux;
 
+const mem = @import("memory/tools.zig");
+
 const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
 
 const interface = @import("interface.zig");
@@ -67,6 +69,16 @@ fn debugPrint(option: *ho.HookingOption, comptime str: []const u8) void {
     }
 }
 
+fn debugFmtPrint(option: *ho.HookingOption, comptime fmt: []const u8, args: anytype) void {
+    const is_debug = switch (option.*) {
+        .vmt_option => |opt| opt.debug,
+    };
+
+    if (is_debug) {
+        std.debug.print(fmt ++ "\n", args);
+    }
+}
+
 fn hook(option: *ho.HookingOption) anyerror!void {
     debugPrint(option, "Entered hook");
     var unwrapped = switch (option.*) {
@@ -82,7 +94,10 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     debugPrint(option, "Set new protect");
 
     debugPrint(option, "Swapping pointers..");
-    unwrapped.restore = unwrapped.base[unwrapped.index];
+
+    mem.memcpy(&unwrapped.restore, &unwrapped.base[unwrapped.index]);
+    debugFmtPrint(option, "Restore address is at: 0x{x:0<16}", .{unwrapped.restore});
+
     unwrapped.base[unwrapped.index] = unwrapped.target;
     debugPrint(option, "Swapped.");
 
@@ -96,7 +111,7 @@ fn restore(option: *ho.HookingOption) void {
         .vmt_option => |opt| opt,
     };
 
-    unwrapped.base[unwrapped.index] = unwrapped.restore.?;
+    mem.memcpy(&unwrapped.base[unwrapped.index], &unwrapped.restore.?);
     hook(option) catch @panic("Restoring the original vtable failed.");
 }
 
