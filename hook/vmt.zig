@@ -8,7 +8,8 @@ const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
 
-pub const VtablePointer = *align(1) []align(1) usize;
+const MethodTable = [*]align(1) usize;
+pub const VtablePointer = *align(1) MethodTable;
 
 pub fn addressToVtable(address: usize) VtablePointer {
     return @intToPtr(VtablePointer, address);
@@ -18,7 +19,7 @@ const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: []align(1) usize) Address {
+    pub fn init(ptr_type: MethodTable) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -69,7 +70,7 @@ fn debugPrint(option: *ho.HookingOption, comptime str: []const u8) void {
     };
 
     if (is_debug) {
-        std.debug.print(str ++ "\n", .{});
+        std.debug.print("[*] " ++ str ++ "\n", .{});
     }
 }
 
