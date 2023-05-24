@@ -8,18 +8,18 @@ const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
 
-const MethodTable = [*]align(1) usize;
-pub const VtablePointer = *align(1) MethodTable;
+const Vtable = [*]align(1) usize;
+pub const AbstractClass = *align(1) Vtable;
 
-pub fn addressToVtable(address: usize) VtablePointer {
-    return @intToPtr(VtablePointer, address);
+pub fn addressToVtable(address: usize) AbstractClass {
+    return @intToPtr(AbstractClass, address);
 }
 
 const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: MethodTable) Address {
+    pub fn init(ptr_type: Vtable) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -90,7 +90,7 @@ fn hook(option: *ho.HookingOption) anyerror!void {
         .vmt_option => |*opt| opt,
     };
 
-    const ptr = Address.init(unwrapped.vtable.*);
+    const ptr = Address.init(unwrapped.base.*);
     debugPrint(option, "Initialized address");
     const new_flags = getFlags(Flags.readwrite);
 
@@ -100,12 +100,12 @@ fn hook(option: *ho.HookingOption) anyerror!void {
 
     debugPrint(option, "Swapping pointers..");
 
-    debugFmtPrint(option, "Vtable at 0x{*}", .{unwrapped.vtable});
-    debugFmtPrint(option, "Method[0] at 0x{x:0>16}", .{unwrapped.vtable.*[0]});
-    debugFmtPrint(option, "Method[1] at 0x{x:0>16}", .{unwrapped.vtable.*[1]});
+    debugFmtPrint(option, "Vtable at 0x{*}", .{unwrapped.base});
+    debugFmtPrint(option, "Method[0] at 0x{x:0>16}", .{unwrapped.base.*[0]});
+    debugFmtPrint(option, "Method[1] at 0x{x:0>16}", .{unwrapped.base.*[1]});
 
-    unwrapped.restore = unwrapped.vtable.*[unwrapped.index];
-    unwrapped.vtable.*[unwrapped.index] = unwrapped.target;
+    unwrapped.restore = unwrapped.base.*[unwrapped.index];
+    unwrapped.base.*[unwrapped.index] = unwrapped.target;
 
     debugPrint(option, "Swapped.");
 
@@ -119,13 +119,13 @@ fn restore(option: *ho.HookingOption) void {
         .vmt_option => |*opt| opt,
     };
 
-    unwrapped.vtable.*[unwrapped.index] = unwrapped.restore.?;
+    unwrapped.base.*[unwrapped.index] = unwrapped.restore.?;
     hook(option) catch @panic("Restoring the original vtable failed.");
 }
 
-pub fn init(target: anytype, vtable: VtablePointer, index: usize) !interface.Hook {
+pub fn init(target: anytype, base_class: AbstractClass, index: usize) !interface.Hook {
     isFuncPtr(target);
-    var opt = ho.VmtOption.init(vtable, index, @ptrToInt(target), null);
+    var opt = ho.VmtOption.init(base_class, index, @ptrToInt(target), null);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
 
     try self.do_hook();

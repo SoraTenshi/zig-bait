@@ -1,13 +1,13 @@
 const fn_ptr = @import("fn_ptr/func_ptr.zig");
-const VtablePointer = @import("vmt.zig").VtablePointer;
+const AbstractClass = @import("vmt.zig").AbstractClass;
 
 /// The options for the Virtual Method Table hook
 pub const VmtOption = struct {
-    /// The base pointer to the Virtual Function Table
-    vtable: VtablePointer,
+    /// The base class containing the targeted VTable
+    base: AbstractClass,
     /// The index of the function to be hooked
     index: usize,
-    /// The target that should be hooked
+    /// The address to the hooked function
     target: usize,
     /// The restore address. used internally.
     restore: ?usize,
@@ -16,9 +16,9 @@ pub const VmtOption = struct {
     /// Vtable length. Currently unused
     fn_length: ?usize,
 
-    pub fn init(vtable: VtablePointer, index: usize, target: usize, fn_length: ?usize) VmtOption {
+    pub fn init(base: AbstractClass, index: usize, target: usize, fn_length: ?usize) VmtOption {
         return VmtOption{
-            .vtable = vtable,
+            .base = base,
             .index = index,
             .target = target,
             .restore = null,
@@ -36,7 +36,7 @@ pub const VmtOption = struct {
         fn_ptr.checkIfFnPtr(hooked_func);
 
         if (self.restore) |restore| {
-            return @intToPtr(@TypeOf(hooked_func), @ptrToInt(&restore));
+            return @intToPtr(@TypeOf(hooked_func), restore);
         } else {
             return error.RestoreValueIsNull;
         }
