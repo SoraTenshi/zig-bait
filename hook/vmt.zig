@@ -8,11 +8,17 @@ const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
 
+pub const VtablePointer = *align(1) [*]align(1) usize;
+
+pub fn addressToVtable(address: usize) VtablePointer {
+    return @intToPtr(VtablePointer, address);
+}
+
 const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: [*]usize) Address {
+    pub fn init(ptr_type: [*]align(1) usize) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -102,7 +108,7 @@ fn restore(option: *ho.HookingOption) void {
     hook(option) catch @panic("Restoring the original vtable failed.");
 }
 
-pub fn init(target: anytype, vtable: *[*]usize, index: usize) !interface.Hook {
+pub fn init(target: anytype, vtable: VtablePointer, index: usize) !interface.Hook {
     isFuncPtr(target);
     var opt = ho.VmtOption.init(vtable, index, @ptrToInt(target), null);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
