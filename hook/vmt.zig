@@ -98,16 +98,18 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     const old = try setNewProtect(ptr, unwrapped.index, new_flags) orelse getFlags(Flags.read);
     debugPrint(option, "Set new protect");
 
-    debugPrint(option, "Swapping pointers..");
-
-    debugFmtPrint(option, "Vtable at 0x{*}", .{unwrapped.base});
+    debugFmtPrint(option, "Vtable at 0x{x:0>16}", .{@ptrToInt(unwrapped.base)});
     debugFmtPrint(option, "Method[0] at 0x{x:0>16}", .{unwrapped.base.*[0]});
     debugFmtPrint(option, "Method[1] at 0x{x:0>16}", .{unwrapped.base.*[1]});
 
+    debugPrint(option, "Swapping pointers..");
     unwrapped.restore = unwrapped.base.*[unwrapped.index];
     unwrapped.base.*[unwrapped.index] = unwrapped.target;
-
     debugPrint(option, "Swapped.");
+
+    debugFmtPrint(option, "Vtable at 0x{x:0>16}", .{@ptrToInt(unwrapped.base)});
+    debugFmtPrint(option, "(maybe new) Method[0] at 0x{x:0>16}", .{unwrapped.base.*[0]});
+    debugFmtPrint(option, "(maybe new) Method[1] at 0x{x:0>16}", .{unwrapped.base.*[1]});
 
     debugPrint(option, "Restore Protection.");
     _ = try setNewProtect(ptr, unwrapped.index, old);
