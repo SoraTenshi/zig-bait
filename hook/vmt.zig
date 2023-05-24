@@ -8,7 +8,7 @@ const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
 
-pub const VtablePointer = *align(1) [*]align(1) usize;
+pub const VtablePointer = *align(1) []align(1) usize;
 
 pub fn addressToVtable(address: usize) VtablePointer {
     return @intToPtr(VtablePointer, address);
@@ -18,7 +18,7 @@ const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: [*]align(1) usize) Address {
+    pub fn init(ptr_type: []align(1) usize) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -73,6 +73,16 @@ fn debugPrint(option: *ho.HookingOption, comptime str: []const u8) void {
     }
 }
 
+fn debugFmtPrint(option: *ho.HookingOption, comptime fmt: []const u8, args: anytype) void {
+    const is_debug = switch (option.*) {
+        .vmt_option => |opt| opt.debug,
+    };
+
+    if (is_debug) {
+        std.debug.print("[*] " ++ fmt ++ "\n", args);
+    }
+}
+
 fn hook(option: *ho.HookingOption) anyerror!void {
     debugPrint(option, "Entered hook");
     var unwrapped = switch (option.*) {
@@ -88,6 +98,10 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     debugPrint(option, "Set new protect");
 
     debugPrint(option, "Swapping pointers..");
+
+    debugFmtPrint(option, "Vtable at 0x{*}", .{unwrapped.vtable});
+    debugFmtPrint(option, "Method[0] at 0x{x:0>16}", .{unwrapped.vtable.*[0]});
+    debugFmtPrint(option, "Method[1] at 0x{x:0>16}", .{unwrapped.vtable.*[1]});
 
     unwrapped.restore = unwrapped.vtable.*[unwrapped.index];
     unwrapped.vtable.*[unwrapped.index] = unwrapped.target;
