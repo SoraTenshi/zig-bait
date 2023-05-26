@@ -19,6 +19,8 @@ pub const VmtOption = struct {
     shadow: bool,
     /// The allocator to be used when `shadow` is enabled
     alloc: ?Allocator,
+    /// Track of the vtable
+    created_vtable: ?[]usize,
 
     pub fn init(base: AbstractClass, index: usize, target: usize, shadow: bool, alloc: ?Allocator) VmtOption {
         return VmtOption{
@@ -29,7 +31,7 @@ pub const VmtOption = struct {
             .debug = false,
             .shadow = shadow,
             .alloc = alloc,
-            .vtable_len = 0,
+            .created_vtable = null,
         };
     }
 

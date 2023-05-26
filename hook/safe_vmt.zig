@@ -58,22 +58,24 @@ fn debugFmtPrint(option: *ho.HookingOption, comptime fmt: []const u8, args: anyt
     }
 }
 
+/// Query the VMT Region to figure out its size based on Protection levels
+/// Expects the vtable to already include the RTTI
 fn queryVmtRegion(vtable: Vtable) usize {
-    const include_rtti = vtable - @sizeOf(usize);
-    const address = Address.init(include_rtti).win_addr;
-    var buffer: usize = @sizeOf(usize) * 2;
+    const address = Address.init(vtable).win_addr;
+    var size: usize = 1;
 
     var mba: win.MEMORY_BASIC_INFORMATION = undefined;
     var still_in_range = true;
-    while (still_in_range) : (buffer += @sizeOf(usize)) {
-        _ = win.VirtualQuery(address, &mba, @as(win.SIZE_T, buffer)) catch {
+    while (still_in_range) : (size += 1) {
+        _ = win.VirtualQuery(address, &mba, @as(win.SIZE_T, @sizeOf(win.MEMORY_BASIC_INFORMATION))) catch {
             still_in_range = false;
             break;
         };
-        still_in_range = ((mba.State != win.MEM_COMMIT) or (mba.Protect & (win.PAGE_GUARD | win.PAGE_NOACCESS) > 0) or (mba.Protect & win.PAGE_EXECUTE) == 0);
+        still_in_range = ((mba.State == win.MEM_COMMIT) or (mba.Protect & (win.PAGE_GUARD | win.PAGE_NOACCESS) == 0) or (mba.Protect & win.PAGE_EXECUTE | win.PAGE_EXECUTE_READ | win.PAGE_EXECUTE_READWRITE | win.PAGE_EXECUTE_WRITECOPY) != 0);
     }
+    std.debug.print("out of vquery loop --- {d} \n", .{size});
 
-    return buffer - @sizeOf(usize);
+    return size - 1;
 }
 
 fn hook(option: *ho.HookingOption) anyerror!void {
@@ -85,22 +87,26 @@ fn hook(option: *ho.HookingOption) anyerror!void {
         .vmt_option => |*opt| opt,
     };
 
-    unwrapped.restore = @ptrToInt(unwrapped.base);
-    unwrapped.base = @intToPtr(AbstractClass, @ptrToInt(unwrapped.base) - 1);
+    unwrapped.restore = @ptrToInt(unwrapped.base.*);
 
-    const vtable_size = queryVmtRegion(unwrapped.base.* - 1);
+    // include the rtti information
+    unwrapped.base.* = @intToPtr(Vtable, @ptrToInt(unwrapped.base.* - 1));
+
+    const vtable_size = queryVmtRegion(unwrapped.base.*);
     var new_vtable = unwrapped.alloc.?.alloc(usize, vtable_size) catch @panic("OOM");
 
     var current: usize = 0;
-    while (current < vtable_size) : (current += 1) {
-        if (current == unwrapped.index) {
+    while (current != vtable_size) : (current += 1) {
+        if (current + 1 == unwrapped.index) {
             new_vtable[current] = unwrapped.target;
         } else {
             new_vtable[current] = unwrapped.base.*[current];
         }
     }
 
-    unwrapped.base.* = new_vtable;
+    unwrapped.created_vtable = new_vtable;
+    unwrapped.base.* = @ptrCast(Vtable, new_vtable.ptr);
+    unwrapped.base.* += 1;
 }
 
 fn restore(option: *ho.HookingOption) void {
@@ -108,8 +114,7 @@ fn restore(option: *ho.HookingOption) void {
         .vmt_option => |*opt| opt,
     };
 
-    const own_vtable = @ptrToInt(unwrapped.base);
-    defer unwrapped.alloc.?.free(@intToPtr([]usize, own_vtable));
+    defer unwrapped.alloc.?.free(unwrapped.created_vtable.?);
     unwrapped.base = @intToPtr(AbstractClass, unwrapped.restore.? + @sizeOf(usize));
 }
 
