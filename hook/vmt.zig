@@ -127,7 +127,7 @@ fn restore(option: *ho.HookingOption) void {
 
 pub fn init(target: anytype, base_class: AbstractClass, index: usize) !interface.Hook {
     isFuncPtr(target);
-    var opt = ho.VmtOption.init(base_class, index, @ptrToInt(target), null);
+    var opt = ho.VmtOption.init(base_class, index, @ptrToInt(target), false, null);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
 
     try self.do_hook();

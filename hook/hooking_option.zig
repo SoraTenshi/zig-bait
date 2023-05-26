@@ -1,3 +1,5 @@
+const Allocator = @import("std").mem.Allocator;
+
 const fn_ptr = @import("fn_ptr/func_ptr.zig");
 const AbstractClass = @import("vmt.zig").AbstractClass;
 
@@ -13,17 +15,20 @@ pub const VmtOption = struct {
     restore: ?usize,
     /// Whether to use debug logging, please referr to @This().enableDebug()
     debug: bool,
-    /// Vtable length. Currently unused
-    fn_length: ?usize,
+    /// Whether the vtable shall be copied and the original pointer be redirected, or if only functions should be swapped
+    shadow: bool,
+    /// The allocator to be used when `shadow` is enabled
+    alloc: ?Allocator,
 
-    pub fn init(base: AbstractClass, index: usize, target: usize, fn_length: ?usize) VmtOption {
+    pub fn init(base: AbstractClass, index: usize, target: usize, shadow: bool, alloc: ?Allocator) VmtOption {
         return VmtOption{
             .base = base,
             .index = index,
             .target = target,
             .restore = null,
             .debug = false,
-            .fn_length = fn_length,
+            .shadow = shadow,
+            .alloc = alloc,
         };
     }
 

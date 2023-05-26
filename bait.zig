@@ -1,5 +1,6 @@
 // All the VMT utils
 pub const vmt = @import("hook/vmt.zig");
+pub const safe_vmt = @import("hook/safe_vmt.zig");
 
 const HookingInterface = @import("hook/interface.zig").Hook;
 
