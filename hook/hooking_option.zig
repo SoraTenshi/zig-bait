@@ -29,6 +29,7 @@ pub const VmtOption = struct {
             .debug = false,
             .shadow = shadow,
             .alloc = alloc,
+            .vtable_len = 0,
         };
     }
 

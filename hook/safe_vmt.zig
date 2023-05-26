@@ -61,7 +61,7 @@ fn debugFmtPrint(option: *ho.HookingOption, comptime fmt: []const u8, args: anyt
 fn queryVmtRegion(vtable: Vtable) usize {
     const include_rtti = vtable - @sizeOf(usize);
     const address = Address.init(include_rtti).win_addr;
-    var buffer = @sizeOf(usize) * 2;
+    var buffer: usize = @sizeOf(usize) * 2;
 
     var mba: win.MEMORY_BASIC_INFORMATION = undefined;
     var still_in_range = true;
@@ -70,7 +70,7 @@ fn queryVmtRegion(vtable: Vtable) usize {
             still_in_range = false;
             break;
         };
-        still_in_range = ((mba.State != win.MEM_COMMIT) or (mba.Protect & (win.PAGE_GUARD | win.PAGE_NOACCESS)) or !(mba.Protect & win.PAGE_EXECUTE));
+        still_in_range = ((mba.State != win.MEM_COMMIT) or (mba.Protect & (win.PAGE_GUARD | win.PAGE_NOACCESS) > 0) or (mba.Protect & win.PAGE_EXECUTE) == 0);
     }
 
     return buffer - @sizeOf(usize);
@@ -86,7 +86,7 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     };
 
     unwrapped.restore = @ptrToInt(unwrapped.base);
-    unwrapped.base = unwrapped.base - 1;
+    unwrapped.base = @intToPtr(AbstractClass, @ptrToInt(unwrapped.base) - 1);
 
     const vtable_size = queryVmtRegion(unwrapped.base.* - 1);
     var new_vtable = unwrapped.alloc.?.alloc(usize, vtable_size) catch @panic("OOM");
@@ -96,11 +96,11 @@ fn hook(option: *ho.HookingOption) anyerror!void {
         if (current == unwrapped.index) {
             new_vtable[current] = unwrapped.target;
         } else {
-            new_vtable[current] = unwrapped.base[current];
+            new_vtable[current] = unwrapped.base.*[current];
         }
     }
 
-    unwrapped.base = new_vtable.ptr;
+    unwrapped.base.* = new_vtable;
 }
 
 fn restore(option: *ho.HookingOption) void {
@@ -109,8 +109,8 @@ fn restore(option: *ho.HookingOption) void {
     };
 
     const own_vtable = @ptrToInt(unwrapped.base);
-    defer unwrapped.alloc.?.free(own_vtable);
-    unwrapped.base = unwrapped.restore.? + @sizeOf(usize);
+    defer unwrapped.alloc.?.free(@intToPtr([]usize, own_vtable));
+    unwrapped.base = @intToPtr(AbstractClass, unwrapped.restore.? + @sizeOf(usize));
 }
 
 pub fn init(target: anytype, base_class: AbstractClass, index: usize, alloc: std.mem.Allocator) !interface.Hook {
