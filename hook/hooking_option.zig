@@ -17,6 +17,8 @@ pub const VmtOption = struct {
     debug: bool,
     /// Whether the vtable shall be copied and the original pointer be redirected, or if only functions should be swapped
     shadow: bool,
+    /// The original function when using the shadow hook
+    shadow_orig: ?usize,
     /// The allocator to be used when `shadow` is enabled
     alloc: ?Allocator,
     /// Track of the vtable
@@ -30,6 +32,7 @@ pub const VmtOption = struct {
             .restore = null,
             .debug = false,
             .shadow = shadow,
+            .shadow_orig = null,
             .alloc = alloc,
             .created_vtable = null,
         };
@@ -43,10 +46,24 @@ pub const VmtOption = struct {
     pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype) anyerror!@TypeOf(hooked_func) {
         fn_ptr.checkIfFnPtr(hooked_func);
 
-        if (self.restore) |restore| {
-            return @intToPtr(@TypeOf(hooked_func), restore);
+        if (self.shadow) {
+            if (self.shadow_orig) |restore| {
+                return @intToPtr(@TypeOf(hooked_func), restore);
+            }
         } else {
-            return error.RestoreValueIsNull;
+            if (self.restore) |restore| {
+                return @intToPtr(@TypeOf(hooked_func), restore);
+            }
+        }
+
+        return error.RestoreValueIsNull;
+    }
+
+    pub fn deinit(self: *VmtOption) void {
+        if (self.alloc) |alloc| {
+            if (self.created_vtable) |vt| {
+                alloc.free(vt);
+            }
         }
     }
 };

@@ -6,5 +6,5 @@ A Zig Hooking Library
 ## Roadmap: (or what will be done, attempted or whatnot)
 
 - [x] Simple VMT Hook
-- [ ] "Advanced" VMT Hook (copy vtable, with RTTI and overwrite the whole thing)
+- [x] "Advanced" VMT Hook (copy vtable, with RTTI and overwrite the whole thing)
 - [ ] Detour hook (save prologue, overwrite with jmp to own address, replay prologue, call "hook")
