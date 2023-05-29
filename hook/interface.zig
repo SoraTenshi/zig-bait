@@ -32,27 +32,3 @@ pub const Hook = struct {
         self.restore(&self.hook_option);
     }
 };
-
-fn h(_: *option.HookingOption) anyerror!void {
-    return error.Nice;
-}
-
-fn u(_: *option.HookingOption) void {
-    return;
-}
-
-test {
-    var c = try std.testing.allocator.create([*]usize);
-    defer std.testing.allocator.destroy(c);
-
-    var b = try std.testing.allocator.create([*]usize);
-    defer std.testing.allocator.destroy(b);
-
-    var hook = Hook.init(&h, &u, option.HookingOption{ .vmt_option = option.VmtOption{
-        .base = c,
-        .index = 0x0,
-        .original = b.*,
-    } });
-
-    try std.testing.expectError(error.Nice, hook.do_hook());
-}

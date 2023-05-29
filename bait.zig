@@ -19,3 +19,7 @@ pub fn restoreAll() void {
         }
     }
 }
+
+test {
+    @import("std").testing.refAllDecls(@This());
+}
