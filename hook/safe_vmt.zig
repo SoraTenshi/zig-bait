@@ -3,7 +3,8 @@ const builtin = @import("builtin");
 const win = std.os.windows;
 const lin = std.os.linux;
 
-const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
+const fn_ptr = @import("fn_ptr/func_ptr.zig");
+const isFuncPtr = fn_ptr.checkIfFnPtr;
 
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
@@ -38,26 +39,6 @@ const Flags = enum {
     execute,
 };
 
-fn debugPrint(option: *ho.HookingOption, comptime str: []const u8) void {
-    const is_debug = switch (option.*) {
-        .vmt_option => |opt| opt.debug,
-    };
-
-    if (is_debug) {
-        std.debug.print("[*] " ++ str ++ "\n", .{});
-    }
-}
-
-fn debugFmtPrint(option: *ho.HookingOption, comptime fmt: []const u8, args: anytype) void {
-    const is_debug = switch (option.*) {
-        .vmt_option => |opt| opt.debug,
-    };
-
-    if (is_debug) {
-        std.debug.print("[*] " ++ fmt ++ "\n", args);
-    }
-}
-
 /// Query the VMT Region to figure out its size based on Protection levels
 /// Expects the vtable to already include the RTTI
 fn queryVmtRegion(vtable: Vtable) usize {
@@ -89,22 +70,24 @@ fn hook(option: *ho.HookingOption) anyerror!void {
         .vmt_option => |*opt| opt,
     };
 
-    unwrapped.restore = @ptrToInt(unwrapped.base.*);
+    unwrapped.safe_orig = @ptrToInt(unwrapped.base.*);
 
     // include the rtti information
     unwrapped.base.* = unwrapped.base.* - 1;
 
     const vtable_size = queryVmtRegion(unwrapped.base.*);
-    var new_vtable = unwrapped.alloc.?.alloc(usize, vtable_size) catch @panic("OOM");
+    var new_vtable = unwrapped.alloc.?.allocator().alloc(usize, vtable_size) catch @panic("OOM");
 
     var current: usize = 0;
-    while (current != vtable_size) : (current += 1) {
-        if (current == unwrapped.index + 1) {
-            unwrapped.shadow_orig = unwrapped.base.*[current];
-            new_vtable[current] = unwrapped.target;
-        } else {
-            new_vtable[current] = unwrapped.base.*[current];
+    outer: while (current != vtable_size) : (current += 1) {
+        for (unwrapped.index_map) |*map| {
+            if (map.position + 1 == current) {
+                map.restore = unwrapped.base.*[current];
+                new_vtable[current] = map.target;
+                continue :outer;
+            }
         }
+        new_vtable[current] = unwrapped.base.*[current];
     }
 
     unwrapped.created_vtable = new_vtable;
@@ -117,15 +100,13 @@ fn restore(option: *ho.HookingOption) void {
         .vmt_option => |*opt| opt,
     };
 
-    defer unwrapped.alloc.?.free(unwrapped.created_vtable.?);
-    unwrapped.base = @intToPtr(AbstractClass, unwrapped.restore.? + @sizeOf(usize));
+    defer unwrapped.alloc.?.deinit();
+    unwrapped.base = @intToPtr(AbstractClass, unwrapped.safe_orig.? + @sizeOf(usize));
 }
 
-pub fn init(target: anytype, base_class: AbstractClass, index: usize, alloc: std.mem.Allocator) !interface.Hook {
-    isFuncPtr(target);
-    var opt = ho.VmtOption.init(base_class, index, @ptrToInt(target), true, alloc);
+pub fn init(base_class: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
+    var opt = ho.VmtOption.initSafe(base_class, positions, targets, alloc);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
-
     try self.do_hook();
     return self;
 }

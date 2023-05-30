@@ -21,5 +21,8 @@ pub fn restoreAll() void {
 }
 
 test {
-    @import("std").testing.refAllDecls(@This());
+    const t = @import("std").testing;
+    t.refAllDecls(@This());
+    // t.refAllDecls(vmt);
+    t.refAllDecls(safe_vmt);
 }

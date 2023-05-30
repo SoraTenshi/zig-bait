@@ -64,56 +64,20 @@ pub fn setNewProtect(address: Address, size: usize, new_protect: usize) anyerror
     }
 }
 
-fn debugPrint(option: *ho.HookingOption, comptime str: []const u8) void {
-    const is_debug = switch (option.*) {
-        .vmt_option => |opt| opt.debug,
-    };
-
-    if (is_debug) {
-        std.debug.print("[*] " ++ str ++ "\n", .{});
-    }
-}
-
-fn debugFmtPrint(option: *ho.HookingOption, comptime fmt: []const u8, args: anytype) void {
-    const is_debug = switch (option.*) {
-        .vmt_option => |opt| opt.debug,
-    };
-
-    if (is_debug) {
-        std.debug.print("[*] " ++ fmt ++ "\n", args);
-    }
-}
-
 fn hook(option: *ho.HookingOption) anyerror!void {
-    debugPrint(option, "Entered hook");
     var unwrapped = switch (option.*) {
         .vmt_option => |*opt| opt,
     };
 
     const ptr = Address.init(unwrapped.base.*);
-    debugPrint(option, "Initialized address");
     const new_flags = getFlags(Flags.readwrite);
 
-    debugPrint(option, "About to set new protect");
-    const old = try setNewProtect(ptr, unwrapped.index, new_flags) orelse getFlags(Flags.read);
-    debugPrint(option, "Set new protect");
-
-    debugFmtPrint(option, "Vtable at 0x{x:0>16}", .{@ptrToInt(unwrapped.base)});
-    debugFmtPrint(option, "Method[0] at 0x{x:0>16}", .{unwrapped.base.*[0]});
-    debugFmtPrint(option, "Method[1] at 0x{x:0>16}", .{unwrapped.base.*[1]});
-
-    debugPrint(option, "Swapping pointers..");
-    unwrapped.restore = unwrapped.base.*[unwrapped.index];
-    unwrapped.base.*[unwrapped.index] = unwrapped.target;
-    debugPrint(option, "Swapped.");
-
-    debugFmtPrint(option, "Vtable at 0x{x:0>16}", .{@ptrToInt(unwrapped.base)});
-    debugFmtPrint(option, "(maybe new) Method[0] at 0x{x:0>16}", .{unwrapped.base.*[0]});
-    debugFmtPrint(option, "(maybe new) Method[1] at 0x{x:0>16}", .{unwrapped.base.*[1]});
-
-    debugPrint(option, "Restore Protection.");
-    _ = try setNewProtect(ptr, unwrapped.index, old);
-    debugPrint(option, "Finished hook.");
+    for (unwrapped.index_map) |*map| {
+        const old = try setNewProtect(ptr, map.position, new_flags) orelse getFlags(Flags.read);
+        defer _ = setNewProtect(ptr, map.position, old) catch {};
+        map.restore = unwrapped.base.*[map.position];
+        unwrapped.base.*[map.position] = map.target;
+    }
 }
 
 fn restore(option: *ho.HookingOption) void {
@@ -121,13 +85,14 @@ fn restore(option: *ho.HookingOption) void {
         .vmt_option => |*opt| opt,
     };
 
-    unwrapped.base.*[unwrapped.index] = unwrapped.restore.?;
-    hook(option) catch @panic("Restoring the original vtable failed.");
+    for (unwrapped.index_map) |map| {
+        unwrapped.base.*[map.position] = map.restore.?;
+        hook(option) catch @panic("Restoring the original vtable failed.");
+    }
 }
 
-pub fn init(target: anytype, base_class: AbstractClass, index: usize) !interface.Hook {
-    isFuncPtr(target);
-    var opt = ho.VmtOption.init(base_class, index, @ptrToInt(target), false, null);
+pub fn init(base_class: AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
+    var opt = ho.VmtOption.init(base_class, positions, targets);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
 
     try self.do_hook();

@@ -1,69 +1,92 @@
+const std = @import("std");
 const Allocator = @import("std").mem.Allocator;
 
 const fn_ptr = @import("fn_ptr/func_ptr.zig");
 const AbstractClass = @import("vmt.zig").AbstractClass;
 
+const IndexToTarget = struct {
+    position: usize,
+    target: usize,
+    restore: ?usize,
+};
+
 /// The options for the Virtual Method Table hook
 pub const VmtOption = struct {
     /// The base class containing the targeted VTable
     base: AbstractClass,
-    /// The index of the function to be hooked
-    index: usize,
-    /// The address to the hooked function
-    target: usize,
-    /// The restore address. used internally.
-    restore: ?usize,
-    /// Whether to use debug logging, please referr to @This().enableDebug()
-    debug: bool,
+    /// The mapping from index to target as well as restore values
+    index_map: []IndexToTarget,
     /// Whether the vtable shall be copied and the original pointer be redirected, or if only functions should be swapped
-    shadow: bool,
-    /// The original function when using the shadow hook
-    shadow_orig: ?usize,
+    safe: bool,
+    /// The original vtable pointer
+    safe_orig: ?usize,
     /// The allocator to be used when `shadow` is enabled
-    alloc: ?Allocator,
+    alloc: ?std.heap.ArenaAllocator,
     /// Track of the vtable
     created_vtable: ?[]usize,
 
-    pub fn init(base: AbstractClass, index: usize, target: usize, shadow: bool, alloc: ?Allocator) VmtOption {
-        return VmtOption{
+    pub fn init(base: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: Allocator) VmtOption {
+        var arena = std.heap.ArenaAllocator.init(alloc);
+        var self = VmtOption{
             .base = base,
-            .index = index,
-            .target = target,
-            .restore = null,
-            .debug = false,
-            .shadow = shadow,
-            .shadow_orig = null,
-            .alloc = alloc,
+            .index_map = arena.allocator().alloc(IndexToTarget, positions.len) catch @panic("OOM"),
+            .safe = false,
+            .safe_orig = null,
+            .alloc = arena,
             .created_vtable = null,
         };
+
+        for (positions, 0..) |pos, i| {
+            self.index_map[i] = IndexToTarget{
+                .position = pos,
+                .target = targets[i],
+                .restore = null,
+            };
+        }
+
+        return self;
     }
 
-    /// Sets a flag so that the whole hooking process prints debug messages to StdErr.
-    pub fn enableDebug(self: *VmtOption) void {
-        self.debug = true;
+    /// Uses a ArenaAllocator to manage the memory
+    pub fn initSafe(base: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: Allocator) VmtOption {
+        var arena = std.heap.ArenaAllocator.init(alloc);
+        var self = VmtOption{
+            .base = base,
+            .index_map = arena.allocator().alloc(IndexToTarget, positions.len) catch @panic("OOM"),
+            .safe = false,
+            .safe_orig = null,
+            .alloc = arena,
+            .created_vtable = null,
+        };
+
+        for (positions, 0..) |pos, i| {
+            self.index_map[i] = IndexToTarget{
+                .position = pos,
+                .target = targets[i],
+                .restore = null,
+            };
+        }
+
+        return self;
     }
 
-    pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype) anyerror!@TypeOf(hooked_func) {
+    pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype, comptime position: usize) anyerror!@TypeOf(hooked_func) {
         fn_ptr.checkIfFnPtr(hooked_func);
 
-        if (self.shadow) {
-            if (self.shadow_orig) |restore| {
-                return @intToPtr(@TypeOf(hooked_func), restore);
-            }
-        } else {
-            if (self.restore) |restore| {
-                return @intToPtr(@TypeOf(hooked_func), restore);
+        std.debug.assert(self.index_map.len == 1);
+
+        for (self.index_map) |map| {
+            if (map.position == position) {
+                return @intToPtr(@TypeOf(hooked_func), map.restore.?);
             }
         }
 
-        return error.RestoreValueIsNull;
+        return error.InvalidPosition;
     }
 
     pub fn deinit(self: *VmtOption) void {
         if (self.alloc) |alloc| {
-            if (self.created_vtable) |vt| {
-                alloc.free(vt);
-            }
+            alloc.deinit();
         }
     }
 };
