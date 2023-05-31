@@ -5,21 +5,16 @@ const lin = std.os.linux;
 
 const isFuncPtr = @import("fn_ptr/func_ptr.zig").checkIfFnPtr;
 
+const vtable_tools = @import("vtable_tools.zig");
+
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
-
-const Vtable = [*]align(1) usize;
-pub const AbstractClass = *align(1) Vtable;
-
-pub fn addressToVtable(address: usize) AbstractClass {
-    return @intToPtr(AbstractClass, address);
-}
 
 const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: Vtable) Address {
+    pub fn init(ptr_type: vtable_tools.Vtable) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -91,7 +86,7 @@ fn restore(option: *ho.HookingOption) void {
     }
 }
 
-pub fn init(base_class: AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
+pub fn init(base_class: vtable_tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
     var opt = ho.VmtOption.init(base_class, positions, targets);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
 

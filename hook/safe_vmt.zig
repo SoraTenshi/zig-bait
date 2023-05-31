@@ -6,21 +6,15 @@ const lin = std.os.linux;
 const fn_ptr = @import("fn_ptr/func_ptr.zig");
 const isFuncPtr = fn_ptr.checkIfFnPtr;
 
+const vtable_tools = @import("vtable_tools.zig");
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
-
-const Vtable = [*]align(1) usize;
-pub const AbstractClass = *align(1) Vtable;
-
-pub fn addressToVtable(address: usize) AbstractClass {
-    return @intToPtr(AbstractClass, address);
-}
 
 const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: Vtable) Address {
+    pub fn init(ptr_type: vtable_tools.Vtable) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -41,13 +35,13 @@ const Flags = enum {
 
 /// Query the VMT Region to figure out its size based on Protection levels
 /// Expects the vtable to already include the RTTI
-fn queryVmtRegion(vtable: Vtable) usize {
+fn queryVmtRegion(vtable: vtable_tools.Vtable) usize {
     var size: usize = 1;
 
     var mba: win.MEMORY_BASIC_INFORMATION = undefined;
     var still_in_range = true;
     while (still_in_range) : (size += 1) {
-        const address = Address.init(@intToPtr(?Vtable, vtable[size]) orelse {
+        const address = Address.init(@intToPtr(?vtable_tools.Vtable, vtable[size]) orelse {
             still_in_range = false;
             break;
         }).win_addr;
@@ -91,7 +85,7 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     }
 
     unwrapped.created_vtable = new_vtable;
-    unwrapped.base.* = @ptrCast(Vtable, new_vtable.ptr);
+    unwrapped.base.* = @ptrCast(vtable_tools.Vtable, new_vtable.ptr);
     unwrapped.base.* += 1;
 }
 
@@ -101,10 +95,10 @@ fn restore(option: *ho.HookingOption) void {
     };
 
     defer unwrapped.alloc.?.deinit();
-    unwrapped.base.* = @intToPtr(AbstractClass, unwrapped.safe_orig.? + @sizeOf(usize));
+    unwrapped.base.* = @intToPtr(vtable_tools.AbstractClass, unwrapped.safe_orig.? + @sizeOf(usize));
 }
 
-pub fn init(base_class: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
+pub fn init(base_class: vtable_tools.AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
     var opt = ho.VmtOption.initSafe(base_class, positions, targets, alloc);
     var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
     try self.do_hook();

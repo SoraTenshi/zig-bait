@@ -2,7 +2,7 @@ const std = @import("std");
 const Allocator = @import("std").mem.Allocator;
 
 const fn_ptr = @import("fn_ptr/func_ptr.zig");
-const AbstractClass = @import("vmt.zig").AbstractClass;
+const AbstractClass = @import("vtable_tools.zig").AbstractClass;
 
 const IndexToTarget = struct {
     position: usize,
