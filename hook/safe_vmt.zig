@@ -101,7 +101,7 @@ fn restore(option: *ho.HookingOption) void {
     };
 
     defer unwrapped.alloc.?.deinit();
-    unwrapped.base = @intToPtr(AbstractClass, unwrapped.safe_orig.? + @sizeOf(usize));
+    unwrapped.base.* = @intToPtr(AbstractClass, unwrapped.safe_orig.? + @sizeOf(usize));
 }
 
 pub fn init(base_class: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
