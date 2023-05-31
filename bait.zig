@@ -37,7 +37,7 @@ pub const HookManager = struct {
 
     pub fn restore(self: *HookManager, index: usize) bool {
         if (self.hooks.items.len > index) {
-            var target = self.hooks.items[index];
+            var target = self.hooks.swapRemove(index);
             target.restore(&target.hook_option);
             return true;
         } else {
