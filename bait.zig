@@ -29,7 +29,7 @@ pub const HookManager = struct {
     target_to_index: std.ArrayList(Node),
 
     /// Init, best used with an Arena allocator
-    pub fn init(alloc: std.mem.Allocator) !Self {
+    pub fn init(alloc: std.mem.Allocator) Self {
         return Self{
             .hooks = HookList.init(alloc),
             .alloc = alloc,
