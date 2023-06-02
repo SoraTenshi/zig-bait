@@ -5,6 +5,9 @@ pub const vtable_tools = @import("hook/vtable_tools.zig");
 const vmt = @import("hook/vmt.zig");
 const safe_vmt = @import("hook/safe_vmt.zig");
 
+// Func ptr utils
+const fn_tool = @import("hook/fn_ptr/func_ptr.zig");
+
 const std = @import("std");
 
 const HookingInterface = @import("hook/interface.zig").Hook;
@@ -40,16 +43,16 @@ pub const HookManager = struct {
     pub fn deinit(self: *Self) void {
         defer self.hooks.deinit();
 
-        for (self.hooks.items) |item| {
+        for (self.hooks.items) |*item| {
             item.restore(&item.hook_option);
         }
     }
 
     /// Gets the index from the address of the hook address
-    pub fn getIndexFromTarget(self: *Self, target: usize) ?usize {
-        for (self.func_to_orig.items) |item| {
+    pub fn getIndexFromTarget(self: Self, target: usize) ?usize {
+        for (self.target_to_index.items) |item| {
             if (item.target == target) {
-                return item.pos;
+                return item.position;
             }
         }
 
@@ -58,14 +61,15 @@ pub const HookManager = struct {
 
     /// Gets the original function pointer to call
     pub fn getOriginalFunction(self: Self, fun: anytype) ?@TypeOf(fun) {
+        fn_tool.checkIfFnPtr(fun);
+
         for (self.hooks.items) |item| {
-            const original = switch (item.hooking_option) {
-                .vmt, .safe_vmt => |opt| opt.getOriginalFunction(self.getIndexFromTarget(@ptrToInt(fun))) catch null,
-                else => null,
+            const original = switch (item.hook_option) {
+                .vmt_option => |opt| opt.getOriginalFunction(fun, self.getIndexFromTarget(@ptrToInt(fun)) orelse return null) catch null,
             };
 
             if (original) |orig| {
-                return @intToPtr(@TypeOf(fun), orig);
+                return orig;
             }
         }
 
@@ -124,7 +128,15 @@ pub const HookManager = struct {
     }
 };
 
+const t = @import("std").testing;
 test {
-    const t = @import("std").testing;
     t.refAllDecls(@This());
+}
+
+test "safe vmt" {
+    t.refAllDecls(safe_vmt);
+}
+
+test "hooking option" {
+    t.refAllDecls(@import("hook/hooking_option.zig"));
 }

@@ -70,10 +70,8 @@ pub const VmtOption = struct {
         return self;
     }
 
-    pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype, comptime position: usize) anyerror!@TypeOf(hooked_func) {
+    pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
         fn_ptr.checkIfFnPtr(hooked_func);
-
-        std.debug.assert(self.index_map.len == 1);
 
         for (self.index_map) |map| {
             if (map.position == position) {
