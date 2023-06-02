@@ -41,6 +41,8 @@ pub const HookManager = struct {
     }
 
     pub fn deinit(self: *Self) void {
+        defer self.hooks.deinit();
+
         for (self.hooks.items) |*item| {
             item.restore(&item.hook_option);
         }
@@ -87,7 +89,7 @@ pub const HookManager = struct {
     /// Restore a hook based on the given hook address
     pub fn restore(self: *Self, target_ptr: usize) bool {
         if (self.getIndexFromTarget(target_ptr)) |found_index| {
-            var target = self.hooks.orderedRemove(found_index);
+            var target = self.hooks.swapRemove(found_index);
             target.restore(&target.hook_option);
             return true;
         } else {

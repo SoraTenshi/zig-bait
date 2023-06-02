@@ -96,7 +96,6 @@ fn restore(option: *ho.HookingOption) void {
 
     defer unwrapped.alloc.?.deinit();
     unwrapped.base.* = @intToPtr(vtable_tools.Vtable, unwrapped.safe_orig.?);
-    unwrapped.base.* += 1;
 }
 
 pub fn init(base_class: vtable_tools.AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
