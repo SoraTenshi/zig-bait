@@ -41,18 +41,26 @@ pub const HookManager = struct {
     }
 
     pub fn deinit(self: *Self) void {
-        defer self.hooks.deinit();
-
         for (self.hooks.items) |*item| {
             item.restore(&item.hook_option);
         }
     }
 
     /// Gets the index from the address of the hook address
-    pub fn getIndexFromTarget(self: Self, target: usize) ?usize {
+    pub fn getPositionFromTarget(self: Self, target: usize) ?usize {
         for (self.target_to_index.items) |item| {
             if (item.target == target) {
                 return item.position;
+            }
+        }
+
+        return null;
+    }
+
+    fn getIndexFromTarget(self: Self, target: usize) ?usize {
+        for (self.target_to_index.items, 0..) |item, i| {
+            if (item.target == target) {
+                return i;
             }
         }
 
@@ -65,7 +73,7 @@ pub const HookManager = struct {
 
         for (self.hooks.items) |item| {
             const original = switch (item.hook_option) {
-                .vmt_option => |opt| opt.getOriginalFunction(fun, self.getIndexFromTarget(@ptrToInt(fun)) orelse return null) catch null,
+                .vmt_option => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
             };
 
             if (original) |orig| {
