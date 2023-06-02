@@ -7,6 +7,7 @@
 - [x] Simple VMT Hook
 - [x] "Advanced" VMT Hook (copy vtable, with RTTI and overwrite the whole thing)
 - [ ] Detour hook (save prologue, overwrite with jmp to own address, replay prologue, call "hook")
+- [ ] Better support for x86, especially Calling Convention control
 
 ## Usage:
 
