@@ -17,17 +17,27 @@ pub const Method = enum {
 };
 
 pub const HookManager = struct {
+    const Self = @This();
+    const Node = struct {
+        position: usize,
+        target: usize,
+    };
+
     hooks: HookList,
     alloc: std.mem.Allocator,
 
-    pub fn init(alloc: std.mem.Allocator) !HookManager {
-        return HookManager{
+    target_to_index: std.ArrayList(Node),
+
+    /// Init, best used with an Arena allocator
+    pub fn init(alloc: std.mem.Allocator) !Self {
+        return Self{
             .hooks = HookList.init(alloc),
             .alloc = alloc,
+            .target_to_index = std.ArrayList(Node).init(alloc),
         };
     }
 
-    pub fn deinit(self: *HookManager) void {
+    pub fn deinit(self: *Self) void {
         defer self.hooks.deinit();
 
         for (self.hooks.items) |item| {
@@ -35,9 +45,37 @@ pub const HookManager = struct {
         }
     }
 
-    pub fn restore(self: *HookManager, index: usize) bool {
-        if (self.hooks.items.len > index) {
-            var target = self.hooks.swapRemove(index);
+    /// Gets the index from the address of the hook address
+    pub fn getIndexFromTarget(self: *Self, target: usize) ?usize {
+        for (self.func_to_orig.items) |item| {
+            if (item.target == target) {
+                return item.pos;
+            }
+        }
+
+        return null;
+    }
+
+    /// Gets the original function pointer to call
+    pub fn getOriginalFunction(self: Self, fun: anytype) ?@TypeOf(fun) {
+        for (self.hooks.items) |item| {
+            const original = switch (item.hooking_option) {
+                .vmt, .safe_vmt => |opt| opt.getOriginalFunction(self.getIndexFromTarget(@ptrToInt(fun))) catch null,
+                else => null,
+            };
+
+            if (original) |orig| {
+                return @intToPtr(@TypeOf(fun), orig);
+            }
+        }
+
+        return null;
+    }
+
+    /// Restore a hook based on the given hook address
+    pub fn restore(self: *Self, target_ptr: usize) bool {
+        if (self.getIndexFromTarget(target_ptr)) |found_index| {
+            var target = self.hooks.swapRemove(found_index);
             target.restore(&target.hook_option);
             return true;
         } else {
@@ -45,14 +83,22 @@ pub const HookManager = struct {
         }
     }
 
+    /// Adds a new hook
     pub fn append(
-        self: *HookManager,
+        self: *Self,
         comptime method: Method,
         object_address: usize,
         comptime positions: []const usize,
         targets: []const usize,
         alloc: std.mem.Allocator,
     ) !void {
+        for (positions, targets) |pos, ptr| {
+            try self.target_to_index.append(Node{
+                .position = pos,
+                .target = ptr,
+            });
+        }
+
         switch (method) {
             inline .vmt => {
                 return self.hooks.append(
