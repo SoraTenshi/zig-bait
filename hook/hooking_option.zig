@@ -1,7 +1,6 @@
 const std = @import("std");
 const Allocator = @import("std").mem.Allocator;
 
-const fn_ptr = @import("fn_ptr/func_ptr.zig");
 const AbstractClass = @import("vtable_tools.zig").AbstractClass;
 
 const IndexToTarget = struct {
@@ -71,7 +70,7 @@ pub const VmtOption = struct {
     }
 
     pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
-        fn_ptr.checkIfFnPtr(hooked_func);
+        std.meta.trait.isPtrTo(.Fn)(hooked_func);
 
         for (self.index_map) |map| {
             if (map.position == position) {

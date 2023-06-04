@@ -1,5 +1,4 @@
 const std = @import("std");
-const fn_ptr = @import("fn_ptr/func_ptr.zig");
 
 const option = @import("hooking_option.zig");
 
@@ -12,8 +11,8 @@ pub const Hook = struct {
     restore: *const fn (option: *option.HookingOption) void,
 
     pub fn init(hook: anytype, restore: anytype, hook_option: option.HookingOption) Self {
-        fn_ptr.checkIfFnPtr(hook);
-        fn_ptr.checkIfFnPtr(restore);
+        std.meta.trait.isPtrTo(.Fn)(hook);
+        std.meta.trait.isPtrTo(.Fn)(restore);
 
         const self = Self{
             .hook_option = hook_option,

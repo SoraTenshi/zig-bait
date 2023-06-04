@@ -72,7 +72,7 @@ pub const HookManager = struct {
 
     /// Gets the original function pointer to call
     pub fn getOriginalFunction(self: Self, fun: anytype) ?@TypeOf(fun) {
-        fn_tool.checkIfFnPtr(fun);
+        std.meta.trait.isPtrTo(.Fn)(fun);
 
         for (self.hooks.items) |item| {
             const original = switch (item.hook_option) {

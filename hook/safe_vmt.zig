@@ -3,9 +3,6 @@ const builtin = @import("builtin");
 const win = std.os.windows;
 const lin = std.os.linux;
 
-const fn_ptr = @import("fn_ptr/func_ptr.zig");
-const isFuncPtr = fn_ptr.checkIfFnPtr;
-
 const vtable_tools = @import("vtable_tools.zig");
 const interface = @import("interface.zig");
 const ho = @import("hooking_option.zig");
