@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const win = std.os.windows;
 const lin = std.os.linux;
 
-const vtable_tools = @import("zig-bait-tools");
+const tools = @import("zig-bait-tools");
 const interface = @import("interface.zig");
 const option = @import("option/option.zig");
 
@@ -11,7 +11,7 @@ const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
 
-    pub fn init(ptr_type: vtable_tools.Vtable) Address {
+    pub fn init(ptr_type: tools.Vtable) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),
@@ -83,7 +83,7 @@ fn restore(opt: *option.Option) void {
     }
 }
 
-pub fn init(base_class: vtable_tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
+pub fn init(base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
     var opt = option.vmt.VmtOption.init(base_class, positions, targets);
     var self = interface.Hook.init(&hook, &restore, option.Option{ .vmt = opt });
 

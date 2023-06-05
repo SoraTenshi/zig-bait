@@ -1,5 +1,5 @@
 // Public utils
-pub const vtable_tools = @import("zig-bait-tools");
+pub const addressToVtable = @import("zig-bait-tools").addressToVtable;
 
 // The hook manager
 pub usingnamespace @import("zig-bait/hook_manager.zig");

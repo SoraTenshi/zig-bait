@@ -2,7 +2,7 @@
 const std = @import("std");
 
 // Public utils
-const vtable_tools = @import("zig-bait-tools");
+const tools = @import("zig-bait-tools");
 
 // All the VMT utils
 const vmt = @import("vmt.zig");
@@ -119,7 +119,7 @@ pub const HookManager = struct {
             inline .vmt => {
                 return self.hooks.append(
                     try vmt.init(
-                        vtable_tools.addressToVtable(object_address),
+                        tools.addressToVtable(object_address),
                         positions,
                         targets,
                     ),
@@ -128,7 +128,7 @@ pub const HookManager = struct {
             inline .safe_vmt => {
                 return self.hooks.append(
                     try safe_vmt.init(
-                        vtable_tools.addressToVtable(object_address),
+                        tools.addressToVtable(object_address),
                         positions,
                         targets,
                         alloc,
