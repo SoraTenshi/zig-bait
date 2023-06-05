@@ -2,10 +2,7 @@
 const std = @import("std");
 
 // Public utils
-pub const vtable_tools = @import("vtable_tools.zig");
-
-// Func ptr utils
-const fn_tool = @import("fn_ptr/func_ptr.zig");
+pub const vtable_tools = @import("zig-bait-tools");
 
 // All the VMT utils
 const vmt = @import("vmt.zig");
@@ -14,12 +11,14 @@ const safe_vmt = @import("safe_vmt.zig");
 const HookingInterface = @import("interface.zig").Hook;
 const HookList = std.ArrayList(HookingInterface);
 
+/// The method of hooking to use
 pub const Method = enum {
     vmt,
     safe_vmt,
     currently_unused_detour,
 };
 
+/// The hook manager
 pub const HookManager = struct {
     const Self = @This();
     const Node = struct {
@@ -41,6 +40,7 @@ pub const HookManager = struct {
         };
     }
 
+    /// Restore all hooks and deinit the array list
     pub fn deinit(self: *Self) void {
         defer self.hooks.deinit();
 
@@ -60,6 +60,7 @@ pub const HookManager = struct {
         return null;
     }
 
+    /// Gets the index from the address of the hook address
     fn getIndexFromTarget(self: Self, target: usize) ?usize {
         for (self.target_to_index.items, 0..) |item, i| {
             if (item.target == target) {
@@ -142,8 +143,4 @@ pub const HookManager = struct {
 const t = std.testing;
 test "safe vmt" {
     t.refAllDecls(safe_vmt);
-}
-
-test "hooking option" {
-    t.refAllDecls(@import("hooking_option.zig"));
 }

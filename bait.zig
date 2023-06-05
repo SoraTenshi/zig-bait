@@ -1,8 +1,8 @@
 // Public utils
-pub const vtable_tools = @import("hook/vtable_tools.zig");
+pub const vtable_tools = @import("zig-bait-tools");
 
 // The hook manager
-pub usingnamespace @import("hook/hooking_option.zig");
+pub usingnamespace @import("zig-bait/hook_manager.zig");
 
 const t = @import("std").testing;
 test {

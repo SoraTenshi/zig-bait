@@ -3,9 +3,9 @@ const builtin = @import("builtin");
 const win = std.os.windows;
 const lin = std.os.linux;
 
-const vtable_tools = @import("vtable_tools.zig");
+const vtable_tools = @import("zig-bait-tools");
 const interface = @import("interface.zig");
-const ho = @import("hooking_option.zig");
+const option = @import("option/option.zig");
 
 const Address = union(enum) {
     win_addr: win.LPVOID,
@@ -52,13 +52,13 @@ fn queryVmtRegion(vtable: vtable_tools.Vtable) usize {
     return size;
 }
 
-fn hook(option: *ho.HookingOption) anyerror!void {
+fn hook(opt: *option.Option) anyerror!void {
     if (builtin.os.tag != .windows) {
         @compileError("Safe VMT is only supported on Windows.");
     }
 
-    var unwrapped = switch (option.*) {
-        .vmt_option => |*opt| opt,
+    var unwrapped = switch (opt.*) {
+        .safe_vmt => |*o| o,
     };
 
     unwrapped.safe_orig = @ptrToInt(unwrapped.base.*);
@@ -86,9 +86,9 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     unwrapped.base.* += 1;
 }
 
-fn restore(option: *ho.HookingOption) void {
-    var unwrapped = switch (option.*) {
-        .vmt_option => |*opt| opt,
+fn restore(opt: *option.Option) void {
+    var unwrapped = switch (opt.*) {
+        .safe_vmt => |*o| o,
     };
 
     defer unwrapped.alloc.?.deinit();
@@ -96,8 +96,8 @@ fn restore(option: *ho.HookingOption) void {
 }
 
 pub fn init(base_class: vtable_tools.AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
-    var opt = ho.VmtOption.initSafe(base_class, positions, targets, alloc);
-    var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
+    var opt = option.safe_vmt.SafeVmtOption.initSafe(base_class, positions, targets, alloc);
+    var self = interface.Hook.init(&hook, &restore, option.Option{ .safe_vmt = opt });
     try self.do_hook();
     return self;
 }

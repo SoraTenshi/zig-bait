@@ -3,10 +3,10 @@ const builtin = @import("builtin");
 const win = std.os.windows;
 const lin = std.os.linux;
 
-const vtable_tools = @import("vtable_tools.zig");
+const vtable_tools = @import("zig-bait-tools");
 
 const interface = @import("interface.zig");
-const ho = @import("hooking_option.zig");
+const option = @import("option/option.zig");
 
 const Address = union(enum) {
     win_addr: win.LPVOID,
@@ -57,9 +57,9 @@ pub fn setNewProtect(address: Address, size: usize, new_protect: usize) anyerror
     }
 }
 
-fn hook(option: *ho.HookingOption) anyerror!void {
-    var unwrapped = switch (option.*) {
-        .vmt_option => |*opt| opt,
+fn hook(opt: *option.Option) anyerror!void {
+    var unwrapped = switch (opt.*) {
+        .vmt => |*o| o,
     };
 
     const ptr = Address.init(unwrapped.base.*);
@@ -73,9 +73,9 @@ fn hook(option: *ho.HookingOption) anyerror!void {
     }
 }
 
-fn restore(option: *ho.HookingOption) void {
-    var unwrapped = switch (option.*) {
-        .vmt_option => |*opt| opt,
+fn restore(opt: *option.Option) void {
+    var unwrapped = switch (opt.*) {
+        .vmt => |*o| o,
     };
 
     for (unwrapped.index_map) |map| {
@@ -85,8 +85,8 @@ fn restore(option: *ho.HookingOption) void {
 }
 
 pub fn init(base_class: vtable_tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
-    var opt = ho.VmtOption.init(base_class, positions, targets);
-    var self = interface.Hook.init(&hook, &restore, ho.HookingOption{ .vmt_option = opt });
+    var opt = option.vmt.VmtOption.init(base_class, positions, targets);
+    var self = interface.Hook.init(&hook, &restore, option.Option{ .vmt = opt });
 
     try self.do_hook();
     return self;
