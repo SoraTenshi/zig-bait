@@ -4,7 +4,6 @@ const win = std.os.windows;
 const lin = std.os.linux;
 
 const vtable_tools = @import("zig-bait-tools");
-
 const interface = @import("interface.zig");
 const option = @import("option/option.zig");
 

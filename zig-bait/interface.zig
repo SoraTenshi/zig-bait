@@ -10,9 +10,9 @@ pub const Hook = struct {
     hook_option: option.Option,
 
     /// The interface for the hook function.
-    hook: *const fn (option: *option.HookingOption) anyerror!void,
+    hook: *const fn (option: *option.Option) anyerror!void,
     /// The interface for the restore function.
-    restore: *const fn (option: *option.HookingOption) void,
+    restore: *const fn (option: *option.Option) void,
 
     /// Initialize the interface.
     pub fn init(hook: anytype, restore: anytype, hook_option: option.Option) Self {
