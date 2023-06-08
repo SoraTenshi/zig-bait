@@ -1,5 +1,3 @@
-# zig-bait
-
 ![logo](https://github.com/SoraTenshi/zig-bait/blob/main/zig-bait.png?raw=true)
 
 ## Roadmap: (or what will be done, attempted or whatnot)
