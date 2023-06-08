@@ -20,7 +20,8 @@ pub const VmtOption = struct {
     alloc: Allocator,
 
     /// Initialize the VMT option
-    pub fn init(base: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: Allocator) VmtOption {
+    /// remarks: The allocator will be wrapped in an ArenaAllocator
+    pub fn init(alloc: Allocator, base: AbstractClass, comptime positions: []const usize, targets: []const usize) VmtOption {
         var arena = std.heap.ArenaAllocator.init(alloc);
         var self = VmtOption{
             .base = base,

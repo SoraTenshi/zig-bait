@@ -7,6 +7,8 @@ const tools = @import("zig-bait-tools");
 const interface = @import("interface.zig");
 const option = @import("option/option.zig");
 
+const Allocator = std.mem.Allocator;
+
 const Address = union(enum) {
     win_addr: win.LPVOID,
     lin_addr: [*]const u8,
@@ -95,8 +97,8 @@ fn restore(opt: *option.Option) void {
     unwrapped.base.* = @intToPtr(tools.Vtable, unwrapped.safe_orig.?);
 }
 
-pub fn init(base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: std.mem.Allocator) !interface.Hook {
-    var opt = option.safe_vmt.SafeVmtOption.initSafe(base_class, positions, targets, alloc);
+pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
+    var opt = option.safe_vmt.SafeVmtOption.initSafe(alloc, base_class, positions, targets);
     var self = interface.Hook.init(&hook, &restore, option.Option{ .safe_vmt = opt });
     try self.do_hook();
     return self;

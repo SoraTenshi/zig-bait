@@ -23,7 +23,7 @@ pub const SafeVmtOption = struct {
     created_vtable: ?[]usize,
 
     /// Initialize the VMT hooking option
-    pub fn init(base: AbstractClass, comptime positions: []const usize, targets: []const usize, alloc: Allocator) SafeVmtOption {
+    pub fn init(alloc: Allocator, base: AbstractClass, comptime positions: []const usize, targets: []const usize) SafeVmtOption {
         var arena = std.heap.ArenaAllocator.init(alloc);
         var self = SafeVmtOption{
             .base = base,
