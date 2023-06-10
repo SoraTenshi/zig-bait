@@ -1,7 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const AbstractClass = @import("zig-bait-tools").AbstractClass;
+const tools = @import("zig-bait-tools");
+const AbstractClass = tools.AbstractClass;
 
 /// The mapping from index to target as well as restore address
 const IndexToTarget = struct {
@@ -42,7 +43,7 @@ pub const VmtOption = struct {
 
     /// Gets the original function at the given position
     pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
-        std.meta.trait.isPtrTo(.Fn)(hooked_func);
+        tools.checkIsFnPtr(hooked_func);
 
         for (self.index_map) |map| {
             if (map.position == position) {

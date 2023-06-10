@@ -68,9 +68,7 @@ fn restore(opt: *option.Option) void {
 }
 
 pub fn init(alloc: Allocator, target_ptr: anytype, victim_address: usize) !interface.Hook {
-    if (!std.meta.trait.isPtrTo(@typeInfo(@TypeOf(target_ptr)))(.Fn)) {
-        @compileError("Expected target_ptr to be a ptr to a function, got: " ++ @typeName(@TypeOf(target_ptr)));
-    }
+    tools.checkIsFnPtr(target_ptr);
 
     var opt = option.detour.DetourOption.init(alloc, target_ptr, victim_address);
     var self = interface.Hook.init(&hook, &restore, option.Option{ .detour = opt });

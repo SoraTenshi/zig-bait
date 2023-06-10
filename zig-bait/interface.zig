@@ -2,6 +2,8 @@ const std = @import("std");
 
 const option = @import("option/option.zig");
 
+const tools = @import("zig-bait-tools");
+
 /// The interface for hooking functions.
 pub const Hook = struct {
     const Self = @This();
@@ -16,8 +18,8 @@ pub const Hook = struct {
 
     /// Initialize the interface.
     pub fn init(hook: anytype, restore: anytype, hook_option: option.Option) Self {
-        std.meta.trait.isPtrTo(.Fn)(hook);
-        std.meta.trait.isPtrTo(.Fn)(restore);
+        tools.checkIsFnPtr(hook);
+        tools.checkIsFnPtr(restore);
 
         const self = Self{
             .hook_option = hook_option,

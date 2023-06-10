@@ -1,7 +1,8 @@
 const std = @import("std");
 const Allocator = @import("std").mem.Allocator;
 
-const AbstractClass = @import("zig-bait-tools").AbstractClass;
+const tools = @import("zig-bait-tools");
+const AbstractClass = tools.AbstractClass;
 
 const IndexToTarget = struct {
     position: usize,
@@ -47,7 +48,7 @@ pub const SafeVmtOption = struct {
 
     /// Return the function pointer of the hooked function
     pub fn getOriginalFunction(self: SafeVmtOption, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
-        std.meta.trait.isPtrTo(.Fn)(hooked_func);
+        tools.checkIsFnPtr(hooked_func);
 
         for (self.index_map) |map| {
             if (map.position == position) {
