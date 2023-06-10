@@ -1,15 +1,26 @@
 const std = @import("std");
 
+const tools = @import("zig-bait-tools");
+
 const Allocator = std.mem.Allocator;
 
+const bitHigh = if (tools.ptrSize == 8) 1 else 0; // 64 bit requires an additional byte
+const requiredSize = bitHigh + 3 + tools.ptrSize;
+
 /// The information of the overriden instructions
-const ExtractedOperations = struct {
+pub const ExtractedOperations = struct {
     // The stored prologue
     extracted: []const u8,
     // The address where the stored prologue is located
     address: usize,
-    // The original starting address that has been overriden
-    original: usize,
+
+    pub fn init(alloc: Allocator, shellcode_size: usize) !ExtractedOperations {
+        const extracted = try alloc.alloc(u8, shellcode_size);
+        return ExtractedOperations{
+            .extracted = extracted,
+            .address = @ptrToInt(extracted.ptr),
+        };
+    }
 };
 
 pub const DetourOption = struct {
@@ -19,6 +30,8 @@ pub const DetourOption = struct {
     target: usize,
     // The address of the victim function
     victim: usize,
+    // address to the after-jump location
+    after_jump: usize,
     // The type of the function
     func_ptr_type: type,
     // alloc
@@ -29,13 +42,14 @@ pub const DetourOption = struct {
             .ops = null,
             .target = @ptrToInt(target_ptr),
             .victim = victim_address,
+            .after_jump = victim_address + requiredSize,
             .function_ptr_type = @TypeOf(target_ptr),
             .alloc = alloc,
         };
     }
 
     pub fn getOriginalFunction(self: DetourOption) self.func_ptr_type {
-        return @intToPtr(self.func_ptr_type, self.target);
+        return @intToPtr(self.func_ptr_type, self.after_jump);
     }
 
     pub fn deinit(self: *DetourOption) void {
