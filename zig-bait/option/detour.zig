@@ -32,8 +32,6 @@ pub const DetourOption = struct {
     victim: usize,
     // address to the after-jump location
     after_jump: usize,
-    // The type of the function
-    func_ptr_type: type,
     // alloc
     alloc: Allocator,
 
@@ -43,13 +41,12 @@ pub const DetourOption = struct {
             .target = @ptrToInt(target_ptr),
             .victim = victim_address,
             .after_jump = victim_address + requiredSize,
-            .function_ptr_type = @TypeOf(target_ptr),
             .alloc = alloc,
         };
     }
 
-    pub fn getOriginalFunction(self: DetourOption) self.func_ptr_type {
-        return @intToPtr(self.func_ptr_type, self.after_jump);
+    pub fn getOriginalFunction(self: DetourOption, original_func: anytype) @TypeOf(original_func) {
+        return @intToPtr(original_func, self.after_jump);
     }
 
     pub fn deinit(self: *DetourOption) void {

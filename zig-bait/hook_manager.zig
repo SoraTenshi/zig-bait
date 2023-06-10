@@ -7,6 +7,7 @@ const tools = @import("zig-bait-tools");
 // All the VMT utils
 const vmt = @import("vmt.zig");
 const safe_vmt = @import("safe_vmt.zig");
+const detour = @import("detour.zig");
 
 const HookingInterface = @import("interface.zig").Hook;
 const HookList = std.ArrayList(HookingInterface);
@@ -15,7 +16,7 @@ const HookList = std.ArrayList(HookingInterface);
 pub const Method = enum {
     vmt,
     safe_vmt,
-    currently_unused_detour,
+    detour,
 };
 
 /// The hook manager
@@ -78,6 +79,8 @@ pub const HookManager = struct {
         for (self.hooks.items) |item| {
             const original = switch (item.hook_option) {
                 .vmt_option => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
+                .vmt => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
+                .detour => |opt| opt.getOriginalFunction(fun),
             };
 
             if (original) |orig| {
@@ -99,14 +102,34 @@ pub const HookManager = struct {
         }
     }
 
-    /// Adds a new hook
+    /// Adds a new non-vmt based hook
     pub fn append(
         self: *Self,
+        alloc: std.mem.Allocator,
+        comptime method: Method,
+        victim_address: usize,
+        target_ptr: anytype,
+    ) !void {
+        switch (method) {
+            inline .detour => return self.hooks.append(
+                try detour.init(
+                    alloc,
+                    target_ptr,
+                    victim_address,
+                ),
+            ),
+            inline else => @compileError("Please call `append_vmt` for vmt based methods instead."),
+        }
+    }
+
+    /// Adds a new vmt-based hook
+    pub fn append_vmt(
+        self: *Self,
+        alloc: std.mem.Allocator,
         comptime method: Method,
         object_address: usize,
         comptime positions: []const usize,
         targets: []const usize,
-        alloc: std.mem.Allocator,
     ) !void {
         for (positions, targets) |pos, ptr| {
             try self.target_to_index.append(Node{
@@ -135,7 +158,7 @@ pub const HookManager = struct {
                     ),
                 );
             },
-            inline .currently_unused_detour => @compileError("Detour hooks are unfortunately not yet supported."),
+            inline else => @compileError("Please call `append` for non-vmt based methods instead."),
         }
     }
 };
