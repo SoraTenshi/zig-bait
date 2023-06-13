@@ -142,6 +142,7 @@ pub const HookManager = struct {
             inline .vmt => {
                 return self.hooks.append(
                     try vmt.init(
+                        alloc,
                         tools.addressToVtable(object_address),
                         positions,
                         targets,
@@ -151,10 +152,10 @@ pub const HookManager = struct {
             inline .safe_vmt => {
                 return self.hooks.append(
                     try safe_vmt.init(
+                        alloc,
                         tools.addressToVtable(object_address),
                         positions,
                         targets,
-                        alloc,
                     ),
                 );
             },

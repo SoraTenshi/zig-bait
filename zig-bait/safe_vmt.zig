@@ -100,7 +100,7 @@ fn restore(opt: *option.Option) void {
 }
 
 pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
-    var opt = option.safe_vmt.SafeVmtOption.initSafe(alloc, base_class, positions, targets);
+    var opt = option.safe_vmt.SafeVmtOption.init(alloc, base_class, positions, targets);
     var self = interface.Hook.init(&hook, &restore, option.Option{ .safe_vmt = opt });
     try self.do_hook();
     return self;
