@@ -29,7 +29,7 @@ fn hook(opt: *option.Option) anyerror!void {
 fn restore(opt: *option.Option) void {
     var unwrapped = switch (opt.*) {
         .vmt => |*o| o,
-        else => return error.WrongOption,
+        else => unreachable,
     };
 
     for (unwrapped.index_map) |map| {

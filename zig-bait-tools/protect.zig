@@ -9,9 +9,6 @@ pub const Address = union(enum) {
     lin_addr: [*]const u8,
 
     pub fn init(ptr_type: anytype) Address {
-        if (!std.meta.trait.isManyItemPtr(ptr_type) or !std.meta.trait.isSingleItemPtr(ptr_type)) {
-            @compileError("Expected type to be a ptr, got: " ++ @typeName(@TypeOf(ptr_type)));
-        }
         return switch (builtin.os.tag) {
             .windows => Address{
                 .win_addr = @ptrCast(win.LPVOID, ptr_type),

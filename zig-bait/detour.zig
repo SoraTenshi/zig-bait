@@ -53,14 +53,15 @@ fn hook(opt: *option.Option) anyerror!void {
     defer _ = tools.setNewProtect(ptr, detour.requiredSize, old) catch {};
     for (opcodes.*, shellcode, 0..) |byte, sc, i| {
         unwrapped.ops.?.extracted[i] = byte;
-        byte = sc;
+        var b = @constCast(&byte);
+        b.* = sc;
     }
 }
 
 fn restore(opt: *option.Option) void {
     var unwrapped = switch (opt.*) {
         .detour => |*o| o,
-        else => return error.WrongOption,
+        else => unreachable,
     };
 
     var original_bytes = @intToPtr(*align(1) [detour.requiredSize]u8, unwrapped.ops.?.original);

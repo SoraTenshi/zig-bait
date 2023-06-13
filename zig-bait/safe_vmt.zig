@@ -92,7 +92,7 @@ fn hook(opt: *option.Option) anyerror!void {
 fn restore(opt: *option.Option) void {
     var unwrapped = switch (opt.*) {
         .safe_vmt => |*o| o,
-        else => return error.WrongOption,
+        else => unreachable,
     };
 
     defer unwrapped.alloc.?.deinit();

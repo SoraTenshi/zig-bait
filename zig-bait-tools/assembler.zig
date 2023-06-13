@@ -19,7 +19,7 @@ pub const Register = enum(u8) {
 };
 
 pub const ptrSize = @sizeOf(usize);
-pub inline fn addressToBytes(target: usize) [ptrSize]8 {
+pub inline fn addressToBytes(target: usize) [ptrSize]u8 {
     var arr: [ptrSize]u8 = undefined;
     var current: usize = 0;
     while (current < arr.len) : (current += 1) {
