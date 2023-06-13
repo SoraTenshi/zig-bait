@@ -10,7 +10,7 @@ pub const requiredSize = bitHigh + 3 + tools.ptrSize;
 /// The information of the overriden instructions
 pub const ExtractedOperations = struct {
     // The stored prologue
-    extracted: []const u8,
+    extracted: []u8,
     // The address where the stored prologue is located
     address: usize,
 
