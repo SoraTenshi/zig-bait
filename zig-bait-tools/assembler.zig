@@ -8,12 +8,12 @@
 // 5:  ff e0                   jmp    eax
 
 // Just some internally used collection of common opcodes
-const Opcodes64 = enum(u8) {
+pub const Opcodes = enum(u8) {
     mov = 0x48,
     jmp = 0xff,
 };
 
-const Register = enum(u8) {
+pub const Register = enum(u8) {
     absax = 0xB8,
     jmpax = 0xE0,
 };

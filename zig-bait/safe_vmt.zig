@@ -61,6 +61,7 @@ fn hook(opt: *option.Option) anyerror!void {
 
     var unwrapped = switch (opt.*) {
         .safe_vmt => |*o| o,
+        else => return error.WrongOption,
     };
 
     unwrapped.safe_orig = @ptrToInt(unwrapped.base.*);
@@ -91,6 +92,7 @@ fn hook(opt: *option.Option) anyerror!void {
 fn restore(opt: *option.Option) void {
     var unwrapped = switch (opt.*) {
         .safe_vmt => |*o| o,
+        else => return error.WrongOption,
     };
 
     defer unwrapped.alloc.?.deinit();

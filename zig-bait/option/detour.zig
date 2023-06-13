@@ -4,8 +4,8 @@ const tools = @import("zig-bait-tools");
 
 const Allocator = std.mem.Allocator;
 
-const bitHigh = if (tools.ptrSize == 8) 1 else 0; // 64 bit requires an additional byte
-const requiredSize = bitHigh + 3 + tools.ptrSize;
+pub const bitHigh = if (tools.ptrSize == 8) 1 else 0; // 64 bit requires an additional byte
+pub const requiredSize = bitHigh + 3 + tools.ptrSize;
 
 /// The information of the overriden instructions
 pub const ExtractedOperations = struct {

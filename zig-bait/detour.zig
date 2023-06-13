@@ -40,6 +40,7 @@ fn generateShellcode(target_address: usize) [detour.requiredSize]u8 {
 fn hook(opt: *option.Option) anyerror!void {
     var unwrapped = switch (opt.*) {
         .detour => |*o| o,
+        else => return error.WrongOption,
     };
 
     var opcodes = @intToPtr(*align(1) [detour.requiredSize]u8, unwrapped.victim);
@@ -59,6 +60,7 @@ fn hook(opt: *option.Option) anyerror!void {
 fn restore(opt: *option.Option) void {
     var unwrapped = switch (opt.*) {
         .detour => |*o| o,
+        else => return error.WrongOption,
     };
 
     var original_bytes = @intToPtr(*align(1) [detour.requiredSize]u8, unwrapped.ops.?.original);
