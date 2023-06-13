@@ -31,8 +31,8 @@ fn generateShellcode(target_address: usize) [detour.requiredSize]u8 {
     }
 
     // jmp rax
-    shellcode[next + 1] = @enumToInt(tools.Opcodes.jmp);
-    shellcode[next + 2] = @enumToInt(tools.Register.jmpax);
+    shellcode[next] = @enumToInt(tools.Opcodes.jmp);
+    shellcode[next + 1] = @enumToInt(tools.Register.jmpax);
 
     return shellcode;
 }
@@ -64,7 +64,7 @@ fn restore(opt: *option.Option) void {
         else => unreachable,
     };
 
-    var original_bytes = @intToPtr(*align(1) [detour.requiredSize]u8, unwrapped.ops.?.original);
+    var original_bytes = @intToPtr(*align(1) [detour.requiredSize]u8, unwrapped.victim);
     for (unwrapped.ops.?.extracted, 0..) |byte, i| {
         original_bytes.*[i] = byte;
     }
