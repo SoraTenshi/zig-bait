@@ -46,7 +46,7 @@ pub const DetourOption = struct {
     }
 
     pub fn getOriginalFunction(self: DetourOption, original_func: anytype) @TypeOf(original_func) {
-        return @intToPtr(original_func, self.after_jump);
+        return @intToPtr(@TypeOf(original_func), self.after_jump);
     }
 
     pub fn deinit(self: *DetourOption) void {

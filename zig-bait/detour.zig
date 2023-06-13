@@ -18,11 +18,11 @@ fn generateShellcode(target_address: usize) [detour.requiredSize]u8 {
 
     // movabs [e|r]ax, target_address
     if (detour.bitHigh == 1) {
-        shellcode[next] = tools.Opcodes.mov;
+        shellcode[next] = @enumToInt(tools.Opcodes.mov);
         next += 1;
     }
 
-    shellcode[next] = tools.Register.absax;
+    shellcode[next] = @enumToInt(tools.Register.absax);
     next += 1;
 
     inline for (tools.addressToBytes(target_address)) |byte| {
@@ -31,8 +31,8 @@ fn generateShellcode(target_address: usize) [detour.requiredSize]u8 {
     }
 
     // jmp rax
-    shellcode[next + 1] = tools.Opcodes.jmp;
-    shellcode[next + 2] = tools.Register.jmpax;
+    shellcode[next + 1] = @enumToInt(tools.Opcodes.jmp);
+    shellcode[next + 2] = @enumToInt(tools.Register.jmpax);
 
     return shellcode;
 }
