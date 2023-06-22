@@ -29,7 +29,7 @@ pub const HookManager = struct {
 
     hooks: HookList,
     alloc: std.mem.Allocator,
-    size: comptime_int,
+    size: usize,
 
     target_to_index: std.ArrayList(Node),
 
@@ -48,7 +48,7 @@ pub const HookManager = struct {
         defer self.hooks.deinit();
 
         for (self.hooks.items) |*item| {
-            item.restore(&item.hook_option);
+            item.do_restore();
         }
     }
 
@@ -104,7 +104,7 @@ pub const HookManager = struct {
 
     /// Hooks all the registered functions
     pub fn hookAll(self: *Self) !void {
-        for (self.hooks.items) |h| {
+        for (self.hooks.items) |*h| {
             try h.do_hook();
         }
     }
@@ -113,7 +113,7 @@ pub const HookManager = struct {
     pub fn restore(self: *Self, target_ptr: usize) bool {
         if (self.getIndexFromTarget(target_ptr)) |found_index| {
             var target = self.hooks.swapRemove(found_index);
-            target.restore(&target.hook_option);
+            target.do_restore();
             return true;
         } else {
             return false;

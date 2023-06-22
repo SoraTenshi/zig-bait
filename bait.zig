@@ -6,5 +6,5 @@ pub usingnamespace @import("zig-bait/hook_manager.zig");
 
 const t = @import("std").testing;
 test {
-    t.refAllDecls(@This());
+    t.refAllDeclsRecursive(@This());
 }

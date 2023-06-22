@@ -21,7 +21,7 @@ pub const Hook = struct {
     }
 
     /// Hook the function.
-    pub fn do_hook(self: Self) !void {
+    pub fn do_hook(self: *Self) !void {
         switch (self.hook_option) {
             .vmt => |*vmt| try vmt.hook(vmt),
             .safe_vmt => |*safe_vmt| try safe_vmt.hook(safe_vmt),
@@ -30,7 +30,7 @@ pub const Hook = struct {
     }
 
     /// Restore the function.
-    pub fn do_restore(self: Self) !void {
+    pub fn do_restore(self: *Self) void {
         switch (self.hook_option) {
             .vmt => |*vmt| vmt.restore(vmt),
             .safe_vmt => |*safe_vmt| safe_vmt.restore(safe_vmt),
