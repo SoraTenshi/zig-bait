@@ -80,9 +80,8 @@ pub const HookManager = struct {
 
         for (self.hooks.items) |item| {
             const original = switch (item.hook_option) {
-                .vmt => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
-                .safe_vmt => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
                 .detour => |opt| opt.getOriginalFunction(fun),
+                inline else => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
             };
 
             if (original) |orig| {
