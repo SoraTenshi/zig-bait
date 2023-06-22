@@ -74,12 +74,12 @@ fn hook(opt: *option.safe_vmt.Option) anyerror!void {
 
     var index_storage: usize = 0;
     for (0..vtable_size - 1) |i| {
+        new_vtable[i + 1] = opt.base.*[i + 1];
         if (opt.index_map[index_storage].position == i) {
             opt.index_map[index_storage].restore = opt.base.*[i + 1];
             new_vtable[i + 1] = opt.index_map[index_storage].target;
             index_storage += 1;
         }
-        new_vtable[i + 1] = opt.base.*[i + 1];
     }
 
     opt.created_vtable = new_vtable;
