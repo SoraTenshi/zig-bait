@@ -11,32 +11,30 @@ pub const Hook = struct {
     /// The option for hooking.
     hook_option: option.Option,
 
-    /// The interface for the hook function.
-    hook: *const fn (option: *option.Option) anyerror!void,
-    /// The interface for the restore function.
-    restore: *const fn (option: *option.Option) void,
-
     /// Initialize the interface.
-    pub fn init(hook: anytype, restore: anytype, hook_option: option.Option) Self {
-        tools.checkIsFnPtr(hook);
-        tools.checkIsFnPtr(restore);
-
+    pub fn init(hook_option: option.Option) Self {
         const self = Self{
             .hook_option = hook_option,
-            .hook = hook,
-            .restore = restore,
         };
 
         return self;
     }
 
     /// Hook the function.
-    pub fn do_hook(self: *Self) !void {
-        try self.hook(&self.hook_option);
+    pub fn do_hook(self: Self) !void {
+        switch (self.hook_option) {
+            .vmt => |*vmt| try vmt.hook(vmt),
+            .safe_vmt => |*safe_vmt| try safe_vmt.hook(safe_vmt),
+            .detour => |*detour| try detour.hook(detour),
+        }
     }
 
     /// Restore the function.
-    pub fn do_restore(self: *Self) !void {
-        self.restore(&self.hook_option);
+    pub fn do_restore(self: Self) !void {
+        switch (self.hook_option) {
+            .vmt => |*vmt| vmt.restore(vmt),
+            .safe_vmt => |*safe_vmt| safe_vmt.restore(safe_vmt),
+            .detour => |*detour| detour.restore(detour),
+        }
     }
 };

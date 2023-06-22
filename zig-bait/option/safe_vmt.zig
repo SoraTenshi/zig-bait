@@ -10,8 +10,11 @@ const IndexToTarget = struct {
     restore: ?usize,
 };
 
+pub const HookFunc = tools.HookFunctionType(Option);
+pub const RestoreFunc = tools.RestoreFunctionType(Option);
+
 /// The options for the Virtual Method Table hook
-pub const SafeVmtOption = struct {
+pub const Option = struct {
     /// The base class containing the targeted VTable
     base: AbstractClass,
     /// The mapping from index to target as well as restore values
@@ -22,16 +25,29 @@ pub const SafeVmtOption = struct {
     alloc: ?std.heap.ArenaAllocator,
     /// Track of the vtable
     created_vtable: ?[]usize,
+    /// The hook function
+    hook: HookFunc,
+    /// The restore function
+    restore: RestoreFunc,
 
     /// Initialize the VMT hooking option
-    pub fn init(alloc: Allocator, base: AbstractClass, comptime positions: []const usize, targets: []const usize) SafeVmtOption {
+    pub fn init(
+        alloc: Allocator,
+        base: AbstractClass,
+        comptime positions: []const usize,
+        targets: []const usize,
+        hook: HookFunc,
+        restore: RestoreFunc,
+    ) !Option {
         var arena = std.heap.ArenaAllocator.init(alloc);
-        var self = SafeVmtOption{
+        var self = Option{
             .base = base,
-            .index_map = arena.allocator().alloc(IndexToTarget, positions.len) catch @panic("OOM"),
+            .index_map = try arena.allocator().alloc(IndexToTarget, positions.len),
             .safe_orig = null,
             .alloc = arena,
             .created_vtable = null,
+            .hook = hook,
+            .restore = restore,
         };
 
         // Initialize the index map
@@ -47,7 +63,7 @@ pub const SafeVmtOption = struct {
     }
 
     /// Return the function pointer of the hooked function
-    pub fn getOriginalFunction(self: SafeVmtOption, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
+    pub fn getOriginalFunction(self: Option, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
         tools.checkIsFnPtr(hooked_func);
 
         for (self.index_map) |map| {
@@ -60,7 +76,7 @@ pub const SafeVmtOption = struct {
     }
 
     // Deinitialize the VMT hooking option
-    pub fn deinit(self: *SafeVmtOption) void {
+    pub fn deinit(self: *Option) void {
         if (self.alloc) |alloc| {
             alloc.deinit();
         }

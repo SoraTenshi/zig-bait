@@ -29,6 +29,7 @@ pub const HookManager = struct {
 
     hooks: HookList,
     alloc: std.mem.Allocator,
+    size: comptime_int,
 
     target_to_index: std.ArrayList(Node),
 
@@ -38,6 +39,7 @@ pub const HookManager = struct {
             .hooks = HookList.init(alloc),
             .alloc = alloc,
             .target_to_index = std.ArrayList(Node).init(alloc),
+            .size = 0,
         };
     }
 
@@ -91,6 +93,22 @@ pub const HookManager = struct {
         return null;
     }
 
+    /// Hooks only a single function at the specific index
+    pub fn hook(self: *Self, comptime index: usize) !void {
+        if (index >= self.size) {
+            @compileError("Given index out of scope. Is: " ++ std.fmt.fmtIntSizeDec(self.size) ++ " Got: " ++ std.fmt.fmtIntSizeDec(index));
+        }
+
+        try self.hooks.items[index].do_hook();
+    }
+
+    /// Hooks all the registered functions
+    pub fn hookAll(self: *Self) !void {
+        for (self.hooks.items) |h| {
+            try h.do_hook();
+        }
+    }
+
     /// Restore a hook based on the given hook address
     pub fn restore(self: *Self, target_ptr: usize) bool {
         if (self.getIndexFromTarget(target_ptr)) |found_index| {
@@ -110,6 +128,7 @@ pub const HookManager = struct {
         victim_address: usize,
         target_ptr: anytype,
     ) !void {
+        comptime self.size += 1;
         switch (method) {
             inline .detour => return self.hooks.append(
                 try detour.init(
@@ -131,6 +150,7 @@ pub const HookManager = struct {
         comptime positions: []const usize,
         targets: []const usize,
     ) !void {
+        comptime self.size += 1;
         for (positions, targets) |pos, ptr| {
             try self.target_to_index.append(Node{
                 .position = pos,

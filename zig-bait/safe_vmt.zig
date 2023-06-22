@@ -54,54 +54,43 @@ fn queryVmtRegion(vtable: tools.Vtable) usize {
     return size;
 }
 
-fn hook(opt: *option.Option) anyerror!void {
+fn hook(opt: *option.safe_vmt.Option) anyerror!void {
     if (builtin.os.tag != .windows) {
         @compileError("Safe VMT is only supported on Windows.");
     }
 
-    var unwrapped = switch (opt.*) {
-        .safe_vmt => |*o| o,
-        else => return error.WrongOption,
-    };
-
-    unwrapped.safe_orig = @ptrToInt(unwrapped.base.*);
+    opt.safe_orig = @ptrToInt(opt.base.*);
 
     // include the rtti information
-    unwrapped.base.* = unwrapped.base.* - 1;
+    opt.base.* = opt.base.* - 1;
 
-    const vtable_size = queryVmtRegion(unwrapped.base.*);
-    var new_vtable = unwrapped.alloc.?.allocator().alloc(usize, vtable_size) catch @panic("OOM");
+    const vtable_size = queryVmtRegion(opt.base.*);
+    var new_vtable = try opt.alloc.?.allocator().alloc(usize, vtable_size);
 
     var current: usize = 0;
     outer: while (current != vtable_size) : (current += 1) {
-        for (unwrapped.index_map) |*map| {
+        for (opt.index_map) |*map| {
             if (map.position + 1 == current) {
-                map.restore = unwrapped.base.*[current];
+                map.restore = opt.base.*[current];
                 new_vtable[current] = map.target;
                 continue :outer;
             }
         }
-        new_vtable[current] = unwrapped.base.*[current];
+        new_vtable[current] = opt.base.*[current];
     }
 
-    unwrapped.created_vtable = new_vtable;
-    unwrapped.base.* = @ptrCast(tools.Vtable, new_vtable.ptr);
-    unwrapped.base.* += 1;
+    opt.created_vtable = new_vtable;
+    opt.base.* = @ptrCast(tools.Vtable, new_vtable.ptr);
+    opt.base.* += 1;
 }
 
-fn restore(opt: *option.Option) void {
-    var unwrapped = switch (opt.*) {
-        .safe_vmt => |*o| o,
-        else => unreachable,
-    };
-
-    defer unwrapped.alloc.?.deinit();
-    unwrapped.base.* = @intToPtr(tools.Vtable, unwrapped.safe_orig.?);
+fn restore(opt: *option.safe_vmt.Option) void {
+    defer opt.alloc.?.deinit();
+    opt.base.* = @intToPtr(tools.Vtable, opt.safe_orig.?);
 }
 
-pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
-    var opt = option.safe_vmt.SafeVmtOption.init(alloc, base_class, positions, targets);
+pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) interface.Hook {
+    var opt = option.safe_vmt.Option.init(alloc, base_class, positions, targets);
     var self = interface.Hook.init(&hook, &restore, option.Option{ .safe_vmt = opt });
-    try self.do_hook();
     return self;
 }

@@ -11,23 +11,39 @@ const IndexToTarget = struct {
     restore: ?usize,
 };
 
+pub const HookFunc = tools.HookFunctionType(Option);
+pub const RestoreFunc = tools.RestoreFunctionType(Option);
+
 /// The VMT option type
-pub const VmtOption = struct {
+pub const Option = struct {
     /// The base class containing the targeted VTable
     base: AbstractClass,
     /// The mapping from index to target as well as restore values
     index_map: []IndexToTarget,
     /// The allocator used to allocate the index map
     alloc: Allocator,
+    /// The hook function
+    hook: HookFunc,
+    /// The restore function
+    restore: RestoreFunc,
 
     /// Initialize the VMT option
     /// remarks: The allocator will be wrapped in an ArenaAllocator
-    pub fn init(alloc: Allocator, base: AbstractClass, comptime positions: []const usize, targets: []const usize) VmtOption {
+    pub fn init(
+        alloc: Allocator,
+        base: AbstractClass,
+        comptime positions: []const usize,
+        targets: []const usize,
+        hook: HookFunc,
+        restore: RestoreFunc,
+    ) !Option {
         var arena = std.heap.ArenaAllocator.init(alloc);
-        var self = VmtOption{
+        var self = Option{
             .base = base,
-            .index_map = arena.allocator().alloc(IndexToTarget, positions.len) catch @panic("OOM"),
+            .index_map = try arena.allocator().alloc(IndexToTarget, positions.len),
             .alloc = arena,
+            .hook = hook,
+            .restore = restore,
         };
 
         for (positions, 0..) |pos, i| {
@@ -42,7 +58,7 @@ pub const VmtOption = struct {
     }
 
     /// Gets the original function at the given position
-    pub fn getOriginalFunction(self: VmtOption, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
+    pub fn getOriginalFunction(self: Option, hooked_func: anytype, position: usize) anyerror!@TypeOf(hooked_func) {
         tools.checkIsFnPtr(hooked_func);
 
         for (self.index_map) |map| {
@@ -55,7 +71,7 @@ pub const VmtOption = struct {
     }
 
     /// Deinit the option
-    pub fn deinit(self: *VmtOption) void {
+    pub fn deinit(self: *Option) void {
         self.alloc.deinit();
     }
 };
