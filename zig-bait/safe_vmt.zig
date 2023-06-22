@@ -67,16 +67,19 @@ fn hook(opt: *option.safe_vmt.Option) anyerror!void {
     const vtable_size = queryVmtRegion(opt.base.*);
     var new_vtable = try opt.alloc.?.allocator().alloc(usize, vtable_size);
 
-    var current: usize = 0;
-    outer: while (current != vtable_size) : (current += 1) {
-        for (opt.index_map) |*map| {
-            if (map.position + 1 == current) {
-                map.restore = opt.base.*[current];
-                new_vtable[current] = map.target;
-                continue :outer;
-            }
+    // max = vtable_size
+    // index == pos + 1 => swap
+    // copy rtti first
+    new_vtable[0] = opt.base.*[0];
+
+    var index_storage: usize = 0;
+    for (0..vtable_size - 1) |i| {
+        if (opt.index_map[index_storage].position == i) {
+            opt.index_map[index_storage].restore = opt.base.*[i + 1];
+            new_vtable[i + 1] = opt.index_map[index_storage].target;
+            index_storage += 1;
         }
-        new_vtable[current] = opt.base.*[current];
+        new_vtable[i + 1] = opt.base.*[i + 1];
     }
 
     opt.created_vtable = new_vtable;

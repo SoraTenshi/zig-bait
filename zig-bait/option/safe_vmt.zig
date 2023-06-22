@@ -30,6 +30,10 @@ pub const Option = struct {
     /// The restore function
     restore: RestoreFunc,
 
+    fn lessThan(_: void, lhs: IndexToTarget, rhs: IndexToTarget) bool {
+        return lhs.position < rhs.position;
+    }
+
     /// Initialize the VMT hooking option
     pub fn init(
         alloc: Allocator,
@@ -58,6 +62,8 @@ pub const Option = struct {
                 .restore = null,
             };
         }
+
+        std.sort.insertion(IndexToTarget, self.index_map, {}, lessThan);
 
         return self;
     }
