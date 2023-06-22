@@ -95,8 +95,10 @@ pub const HookManager = struct {
 
     /// Hooks only a single function at the specific index
     pub fn hook(self: *Self, comptime index: usize) !void {
-        if (index >= self.size) {
-            @compileError("Given index out of scope. Is: " ++ std.fmt.fmtIntSizeDec(self.size) ++ " Got: " ++ std.fmt.fmtIntSizeDec(index));
+        comptime {
+            if (index >= self.size) {
+                @compileError("Given index out of scope. Is: " ++ std.fmt.fmtIntSizeDec(self.size) ++ " Got: " ++ std.fmt.fmtIntSizeDec(index));
+            }
         }
 
         try self.hooks.items[index].do_hook();
