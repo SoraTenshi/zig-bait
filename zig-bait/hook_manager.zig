@@ -81,7 +81,7 @@ pub const HookManager = struct {
         for (self.hooks.items) |item| {
             const original = switch (item.hook_option) {
                 .detour => |opt| opt.getOriginalFunction(fun),
-                inline else => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@ptrToInt(fun)) orelse return null) catch null,
+                inline else => |opt| opt.getOriginalFunction(fun, self.getPositionFromTarget(@intFromPtr(fun)) orelse return null) catch null,
             };
 
             if (original) |orig| {
@@ -128,6 +128,7 @@ pub const HookManager = struct {
         comptime method: Method,
         victim_address: usize,
         target_ptr: anytype,
+        comptime total_size: usize,
     ) !void {
         comptime self.size += 1;
         switch (method) {
@@ -136,6 +137,7 @@ pub const HookManager = struct {
                     alloc,
                     target_ptr,
                     victim_address,
+                    total_size,
                 ),
             ),
             inline else => @compileError("Please call `append_vmt` for vmt based methods instead."),

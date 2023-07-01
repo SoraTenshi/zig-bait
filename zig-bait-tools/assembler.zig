@@ -11,6 +11,7 @@
 pub const Opcodes = enum(u8) {
     mov = 0x48,
     jmp = 0xff,
+    nop = 0x90,
 };
 
 pub const Register = enum(u8) {
@@ -23,8 +24,8 @@ pub inline fn addressToBytes(target: usize) [ptrSize]u8 {
     var arr: [ptrSize]u8 = undefined;
     var current: usize = 0;
     while (current < arr.len) : (current += 1) {
-        const shifter = @intCast(u6, current * ptrSize);
-        arr[current] = @truncate(u8, target >> shifter);
+        const shifter = @as(u6, @intCast(current * ptrSize));
+        arr[current] = @as(u8, @truncate(target >> shifter));
     }
 
     return arr;

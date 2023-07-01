@@ -16,10 +16,10 @@ const Address = union(enum) {
     pub fn init(ptr_type: tools.Vtable) Address {
         return switch (builtin.os.tag) {
             .windows => Address{
-                .win_addr = @ptrCast(win.LPVOID, ptr_type),
+                .win_addr = @as(win.LPVOID, @ptrCast(ptr_type)),
             },
             .linux => Address{
-                .lin_addr = @ptrCast([*]const u8, ptr_type),
+                .lin_addr = @as([*]const u8, @ptrCast(ptr_type)),
             },
             else => |a| @panic("The OS '" ++ @tagName(a) ++ "' is not supported."),
         };
@@ -40,7 +40,7 @@ fn queryVmtRegion(vtable: tools.Vtable) usize {
     var mba: win.MEMORY_BASIC_INFORMATION = undefined;
     var still_in_range = true;
     while (still_in_range) : (size += 1) {
-        const address = Address.init(@intToPtr(?tools.Vtable, vtable[size]) orelse {
+        const address = Address.init(@as(?tools.Vtable, @ptrFromInt(vtable[size])) orelse {
             still_in_range = false;
             break;
         }).win_addr;
@@ -59,7 +59,7 @@ fn hook(opt: *option.safe_vmt.Option) anyerror!void {
         @compileError("Safe VMT is only supported on Windows.");
     }
 
-    opt.safe_orig = @ptrToInt(opt.base.*);
+    opt.safe_orig = @intFromPtr(opt.base.*);
 
     // include the rtti information
     opt.base.* = opt.base.* - 1;
@@ -83,13 +83,13 @@ fn hook(opt: *option.safe_vmt.Option) anyerror!void {
     }
 
     opt.created_vtable = new_vtable;
-    opt.base.* = @ptrCast(tools.Vtable, new_vtable.ptr);
+    opt.base.* = @as(tools.Vtable, @ptrCast(new_vtable.ptr));
     opt.base.* += 1;
 }
 
 fn restore(opt: *option.safe_vmt.Option) void {
     defer opt.alloc.?.deinit();
-    opt.base.* = @intToPtr(tools.Vtable, opt.safe_orig.?);
+    opt.base.* = @as(tools.Vtable, @ptrFromInt(opt.safe_orig.?));
 }
 
 pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) interface.Hook {

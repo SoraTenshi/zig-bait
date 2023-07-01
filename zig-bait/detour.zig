@@ -11,18 +11,18 @@ const detour = @import("option/detour.zig");
 
 const Allocator = std.mem.Allocator;
 
-fn generateShellcode(target_address: usize) [detour.requiredSize]u8 {
-    var shellcode: [detour.requiredSize]u8 = undefined;
+fn generateShellcode(target_address: usize, comptime total_buffer: usize) [total_buffer]u8 {
+    var shellcode: [total_buffer]u8 = undefined;
 
     comptime var next = 0;
 
     // movabs [e|r]ax, target_address
     if (detour.bitHigh == 1) {
-        shellcode[next] = @enumToInt(tools.Opcodes.mov);
+        shellcode[next] = @intFromEnum(tools.Opcodes.mov);
         next += 1;
     }
 
-    shellcode[next] = @enumToInt(tools.Register.absax);
+    shellcode[next] = @intFromEnum(tools.Register.absax);
     next += 1;
 
     inline for (tools.addressToBytes(target_address)) |byte| {
@@ -31,21 +31,31 @@ fn generateShellcode(target_address: usize) [detour.requiredSize]u8 {
     }
 
     // jmp rax
-    shellcode[next] = @enumToInt(tools.Opcodes.jmp);
-    shellcode[next + 1] = @enumToInt(tools.Register.jmpax);
+    shellcode[next] = @intFromEnum(tools.Opcodes.jmp);
+    next += 1;
+    shellcode[next] = @intFromEnum(tools.Register.jmpax);
+
+    while (next < total_buffer) : (next += 1) {
+        shellcode[next] = @intFromEnum(tools.Opcodes.nop);
+    }
 
     return shellcode;
 }
 
 fn hook(opt: *option.detour.Option) anyerror!void {
-    var opcodes = @intToPtr(*align(1) [detour.requiredSize]u8, opt.victim);
+    if (detour.requiredSize > opt.total_size) {
+        @compileError("Total buffer size is too small.");
+    }
+
+    var opcodes = @as(*align(1) [opt.total_size]u8, @ptrFromInt(opt.victim));
     const shellcode = generateShellcode(opt.target);
+
     opt.ops = try detour.ExtractedOperations.init(opt.alloc, detour.requiredSize);
 
     const ptr = tools.Address.init(opcodes);
     const new_flags = tools.getFlags(tools.Flags.readwrite);
-    const old = try tools.setNewProtect(ptr, detour.requiredSize, new_flags) orelse tools.getFlags(tools.Flags.read);
-    defer _ = tools.setNewProtect(ptr, detour.requiredSize, old) catch {};
+    const old = try tools.setNewProtect(ptr, opt.total_size, new_flags) orelse tools.getFlags(tools.Flags.read);
+    defer _ = tools.setNewProtect(ptr, opt.total_size, old) catch {};
     for (opcodes.*, shellcode, 0..) |byte, sc, i| {
         opt.ops.?.extracted[i] = byte;
         var b = @constCast(&byte);
@@ -54,16 +64,16 @@ fn hook(opt: *option.detour.Option) anyerror!void {
 }
 
 fn restore(opt: *option.detour.Option) void {
-    var original_bytes = @intToPtr(*align(1) [detour.requiredSize]u8, opt.victim);
+    var original_bytes = @as(*align(1) [opt.total_size]u8, @ptrFromInt(opt.victim));
     for (opt.ops.?.extracted, 0..) |byte, i| {
         original_bytes.*[i] = byte;
     }
 }
 
-pub fn init(alloc: Allocator, target_ptr: anytype, victim_address: usize) interface.Hook {
+pub fn init(alloc: Allocator, target_ptr: anytype, victim_address: usize, comptime total_size: usize) interface.Hook {
     tools.checkIsFnPtr(target_ptr);
 
-    var opt = option.detour.DetourOption.init(alloc, target_ptr, victim_address);
+    var opt = option.detour.Option.init(alloc, target_ptr, victim_address, total_size);
     var self = interface.Hook.init(&hook, &restore, option.Option{ .detour = opt });
     return self;
 }

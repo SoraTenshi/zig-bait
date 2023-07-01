@@ -18,7 +18,7 @@ pub const ExtractedOperations = struct {
         const extracted = try alloc.alloc(u8, shellcode_size);
         return ExtractedOperations{
             .extracted = extracted,
-            .address = @ptrToInt(extracted.ptr),
+            .address = @intFromPtr(extracted.ptr),
         };
     }
 };
@@ -35,6 +35,8 @@ pub const Option = struct {
     victim: usize,
     /// address to the after-jump location
     after_jump: usize,
+    /// The full offset of the buffer i can write to
+    total_size: usize,
     /// alloc
     alloc: Allocator,
     /// The hook function
@@ -48,12 +50,14 @@ pub const Option = struct {
         victim_address: usize,
         hook: HookFunc,
         restore: RestoreFunc,
+        comptime total_size: usize,
     ) Option {
         return Option{
             .ops = null,
-            .target = @ptrToInt(target_ptr),
+            .target = @intFromPtr(target_ptr),
             .victim = victim_address,
             .after_jump = victim_address + requiredSize,
+            .total_size = total_size,
             .alloc = alloc,
             .hook = hook,
             .restore = restore,
@@ -61,7 +65,7 @@ pub const Option = struct {
     }
 
     pub fn getOriginalFunction(self: Option, original_func: anytype) @TypeOf(original_func) {
-        return @intToPtr(@TypeOf(original_func), self.after_jump);
+        return @as(@TypeOf(original_func), @ptrFromInt(self.after_jump));
     }
 
     pub fn deinit(self: *Option) void {

@@ -63,7 +63,7 @@ pub const Option = struct {
 
         for (self.index_map) |map| {
             if (map.position == position) {
-                return @intToPtr(@TypeOf(hooked_func), map.restore.?);
+                return @as(@TypeOf(hooked_func), @ptrFromInt(map.restore.?));
             }
         }
 
