@@ -191,3 +191,11 @@ const t = std.testing;
 test "safe vmt" {
     t.refAllDecls(safe_vmt);
 }
+
+test "vmt" {
+    t.refAllDecls(vmt);
+}
+
+// test "detour" {
+//     t.refAllDecls(detour);
+// }
