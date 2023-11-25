@@ -47,7 +47,7 @@ fn hook(opt: *option.detour.Option) anyerror!void {
         @compileError("Total buffer size is too small.");
     }
 
-    var opcodes = @as(*align(1) [opt.total_size]u8, @ptrFromInt(opt.victim));
+    const opcodes = @as(*align(1) [opt.total_size]u8, @ptrFromInt(opt.victim));
     const shellcode = generateShellcode(opt.target);
 
     opt.ops = try detour.ExtractedOperations.init(opt.alloc, detour.requiredSize);
@@ -58,13 +58,13 @@ fn hook(opt: *option.detour.Option) anyerror!void {
     defer _ = tools.setNewProtect(ptr, opt.total_size, old) catch {};
     for (opcodes.*, shellcode, 0..) |byte, sc, i| {
         opt.ops.?.extracted[i] = byte;
-        var b = @constCast(&byte);
+        const b = @constCast(&byte);
         b.* = sc;
     }
 }
 
 fn restore(opt: *option.detour.Option) void {
-    var original_bytes = @as(*align(1) [opt.total_size]u8, @ptrFromInt(opt.victim));
+    const original_bytes = @as(*align(1) [opt.total_size]u8, @ptrFromInt(opt.victim));
     for (opt.ops.?.extracted, 0..) |byte, i| {
         original_bytes.*[i] = byte;
     }
@@ -73,7 +73,7 @@ fn restore(opt: *option.detour.Option) void {
 pub fn init(alloc: Allocator, target_ptr: anytype, victim_address: usize, comptime total_size: usize) interface.Hook {
     tools.checkIsFnPtr(target_ptr);
 
-    var opt = option.detour.Option.init(alloc, target_ptr, victim_address, total_size);
-    var self = interface.Hook.init(&hook, &restore, option.Option{ .detour = opt });
+    const opt = option.detour.Option.init(alloc, target_ptr, victim_address, total_size);
+    const self = interface.Hook.init(&hook, &restore, option.Option{ .detour = opt });
     return self;
 }

@@ -29,7 +29,7 @@ fn restore(opt: *option.vmt.Option) void {
 }
 
 pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) interface.Hook {
-    var opt = option.vmt.VmtOption.init(alloc, base_class, positions, targets);
-    var self = interface.Hook.init(&hook, &restore, option.Option{ .vmt = opt });
+    const opt = option.vmt.VmtOption.init(alloc, base_class, positions, targets);
+    const self = interface.Hook.init(&hook, &restore, option.Option{ .vmt = opt });
     return self;
 }
