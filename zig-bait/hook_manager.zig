@@ -21,7 +21,6 @@ pub const Method = enum {
 
 /// The hook manager
 pub const HookManager = struct {
-    const Self = @This();
     const Node = struct {
         position: usize,
         target: usize,
@@ -34,8 +33,8 @@ pub const HookManager = struct {
     target_to_index: std.ArrayList(Node),
 
     /// Init, best used with an Arena allocator
-    pub fn init(alloc: std.mem.Allocator) Self {
-        return Self{
+    pub fn init(alloc: std.mem.Allocator) HookManager {
+        return HookManager{
             .hooks = HookList.init(alloc),
             .alloc = alloc,
             .target_to_index = std.ArrayList(Node).init(alloc),
@@ -44,7 +43,7 @@ pub const HookManager = struct {
     }
 
     /// Restore all hooks and deinit the array list
-    pub fn deinit(self: *Self) void {
+    pub fn deinit(self: *HookManager) void {
         defer self.hooks.deinit();
 
         for (self.hooks.items) |*item| {
@@ -53,7 +52,7 @@ pub const HookManager = struct {
     }
 
     /// Gets the index from the address of the hook address
-    pub fn getPositionFromTarget(self: Self, target: usize) ?usize {
+    pub fn getPositionFromTarget(self: HookManager, target: usize) ?usize {
         for (self.target_to_index.items) |item| {
             if (item.target == target) {
                 return item.position;
@@ -64,7 +63,7 @@ pub const HookManager = struct {
     }
 
     /// Gets the index from the address of the hook address
-    fn getIndexFromTarget(self: Self, target: usize) ?usize {
+    fn getIndexFromTarget(self: HookManager, target: usize) ?usize {
         for (self.target_to_index.items, 0..) |item, i| {
             if (item.target == target) {
                 return i;
@@ -75,7 +74,7 @@ pub const HookManager = struct {
     }
 
     /// Gets the original function pointer to call
-    pub fn getOriginalFunction(self: Self, fun: anytype) ?@TypeOf(fun) {
+    pub fn getOriginalFunction(self: HookManager, fun: anytype) ?@TypeOf(fun) {
         tools.checkIsFnPtr(fun);
 
         for (self.hooks.items) |item| {
@@ -93,7 +92,7 @@ pub const HookManager = struct {
     }
 
     /// Hooks only a single function at the specific index
-    pub fn hook(self: *Self, comptime index: usize) !void {
+    pub fn hook(self: *HookManager, comptime index: usize) !void {
         comptime {
             if (index >= self.size) {
                 @compileError("Given index out of scope. Is: " ++ std.fmt.fmtIntSizeDec(self.size) ++ " Got: " ++ std.fmt.fmtIntSizeDec(index));
@@ -104,14 +103,14 @@ pub const HookManager = struct {
     }
 
     /// Hooks all the registered functions
-    pub fn hookAll(self: *Self) !void {
+    pub fn hookAll(self: *HookManager) !void {
         for (self.hooks.items) |*h| {
             try h.do_hook();
         }
     }
 
     /// Restore a hook based on the given hook address
-    pub fn restore(self: *Self, target_ptr: usize) bool {
+    pub fn restore(self: *HookManager, target_ptr: usize) bool {
         if (self.getIndexFromTarget(target_ptr)) |found_index| {
             var target = self.hooks.swapRemove(found_index);
             target.do_restore();
@@ -123,7 +122,7 @@ pub const HookManager = struct {
 
     /// Adds a new non-vmt based hook
     pub fn append(
-        self: *Self,
+        self: *HookManager,
         alloc: std.mem.Allocator,
         comptime method: Method,
         victim_address: usize,
@@ -146,14 +145,14 @@ pub const HookManager = struct {
 
     /// Adds a new vmt-based hook
     pub fn append_vmt(
-        self: *Self,
+        self: *HookManager,
         alloc: std.mem.Allocator,
         comptime method: Method,
         object_address: usize,
         comptime positions: []const usize,
         targets: []const usize,
     ) !void {
-        comptime self.size += 1;
+        self.size += 1;
         for (positions, targets) |pos, ptr| {
             try self.target_to_index.append(Node{
                 .position = pos,
