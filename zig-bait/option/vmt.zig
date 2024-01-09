@@ -21,7 +21,7 @@ pub const Option = struct {
     /// The mapping from index to target as well as restore values
     index_map: []IndexToTarget,
     /// The allocator used to allocate the index map
-    alloc: Allocator,
+    alloc: std.heap.ArenaAllocator,
     /// The hook function
     hook: HookFunc,
     /// The restore function
