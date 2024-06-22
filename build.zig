@@ -5,11 +5,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const zig_bait_tools = b.createModule(.{
-        .root_source_file = .{ .path = "zig-bait-tools/zig-bait-tools.zig" },
+        .root_source_file = b.path("zig-bait-tools/zig-bait-tools.zig"),
     });
 
     const bait = b.addModule("zig-bait", .{
-        .root_source_file = .{ .path = "bait.zig" },
+        .root_source_file = b.path("bait.zig"),
         .imports = &.{.{
             .name = "zig-bait-tools",
             .module = zig_bait_tools,
