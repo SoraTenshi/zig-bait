@@ -148,12 +148,14 @@ pub const HookManager = struct {
         self.size += 1;
         switch (method) {
             inline .detour => |opt| {
-                return self.hooks.append(detour.init(
-                    self.alloc,
-                    opt.source.address,
-                    opt.target.address,
-                    opt.target.len,
-                ));
+                _ = opt; // autofix
+                std.debug.assert(false); // Detour is not yet supported.
+                // return self.hooks.append(detour.init(
+                //     self.alloc,
+                //     opt.source.address,
+                //     opt.target.address,
+                //     opt.target.len,
+                // ));
             },
             inline .vmt => |opt| {
                 for (opt.positions, opt.targets) |pos, ptr| {
@@ -193,7 +195,7 @@ pub const HookManager = struct {
 
 const t = std.testing;
 test "safe vmt" {
-    t.refAllDecls(safe_vmt);
+    if (@import("builtin").os.tag == .windows) t.refAllDecls(safe_vmt);
 }
 
 test "vmt" {
