@@ -21,14 +21,14 @@ pub const Hook = struct {
     }
 
     /// Hook the function.
-    pub fn do_hook(self: *Self) !void {
+    pub fn doHook(self: *Self) !void {
         switch (self.hook_option) {
             inline else => |*opt| try opt.hook(opt),
         }
     }
 
     /// Restore the function.
-    pub fn do_restore(self: *Self) void {
+    pub fn doRestore(self: *Self) void {
         switch (self.hook_option) {
             inline else => |*opt| opt.restore(opt),
         }

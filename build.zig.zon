@@ -1,5 +1,15 @@
 .{
     .name = "zig-bait",
     .version = "0.0.1",
-    .paths = .{""},
+    .minimum_zig_version = "0.14.0",
+
+    .paths = .{
+        "README.md",
+        "LICENSE",
+        "src/",
+        "zig-bait-tools/",
+        "bait.zig",
+        "build.zig",
+        "build.zig.zon",
+    },
 }

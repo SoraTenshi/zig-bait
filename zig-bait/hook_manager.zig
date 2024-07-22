@@ -12,11 +12,30 @@ const detour = @import("detour.zig");
 const HookingInterface = @import("interface.zig").Hook;
 const HookList = std.ArrayList(HookingInterface);
 
+/// The options required for VMT hooking
+pub const VmtOptions = struct {
+    object_address: usize,
+    positions: []const usize,
+    targets: []const usize,
+};
+
+/// WARN: NOT SUPPORTED YET
+pub const DetourOptions = struct {
+    source: struct {
+        address: usize,
+        len: usize,
+    },
+    target: struct {
+        address: usize,
+        len: usize,
+    },
+};
+
 /// The method of hooking to use
-pub const Method = enum {
-    vmt,
-    safe_vmt,
-    detour,
+pub const Method = union(enum) {
+    vmt: VmtOptions,
+    safe_vmt: VmtOptions,
+    detour: DetourOptions,
 };
 
 /// The hook manager
@@ -47,7 +66,7 @@ pub const HookManager = struct {
         defer self.hooks.deinit();
 
         for (self.hooks.items) |*item| {
-            item.do_restore();
+            item.doRestore();
         }
     }
 
@@ -99,13 +118,13 @@ pub const HookManager = struct {
             }
         }
 
-        try self.hooks.items[index].do_hook();
+        try self.hooks.items[index].doHook();
     }
 
     /// Hooks all the registered functions
     pub fn hookAll(self: *HookManager) !void {
         for (self.hooks.items) |*h| {
-            try h.do_hook();
+            try h.doHook();
         }
     }
 
@@ -113,7 +132,7 @@ pub const HookManager = struct {
     pub fn restore(self: *HookManager, target_ptr: usize) bool {
         if (self.getIndexFromTarget(target_ptr)) |found_index| {
             var target = self.hooks.swapRemove(found_index);
-            target.do_restore();
+            target.doRestore();
             return true;
         } else {
             return false;
@@ -121,67 +140,54 @@ pub const HookManager = struct {
     }
 
     /// Adds a new non-vmt based hook
+    /// REMARK: Detour is not yet supported.
     pub fn append(
         self: *HookManager,
         alloc: std.mem.Allocator,
-        comptime method: Method,
-        victim_address: usize,
-        target_ptr: anytype,
-        comptime total_size: usize,
-    ) !void {
-        comptime self.size += 1;
-        switch (method) {
-            inline .detour => return self.hooks.append(
-                try detour.init(
-                    alloc,
-                    target_ptr,
-                    victim_address,
-                    total_size,
-                ),
-            ),
-            inline else => @compileError("Please call `append_vmt` for vmt based methods instead."),
-        }
-    }
-
-    /// Adds a new vmt-based hook
-    pub fn append_vmt(
-        self: *HookManager,
-        alloc: std.mem.Allocator,
-        comptime method: Method,
-        object_address: usize,
-        comptime positions: []const usize,
-        targets: []const usize,
+        method: Method,
     ) !void {
         self.size += 1;
-        for (positions, targets) |pos, ptr| {
-            try self.target_to_index.append(Node{
-                .position = pos,
-                .target = ptr,
-            });
-        }
-
         switch (method) {
-            inline .vmt => {
+            inline .detour => |opt| {
+                return self.hooks.append(detour.init(
+                    alloc,
+                    opt.source.address,
+                    opt.target.address,
+                    opt.target.len,
+                ));
+            },
+            inline .vmt => |opt| {
+                for (opt.positions, opt.targets) |pos, ptr| {
+                    try self.target_to_index.append(Node{
+                        .position = pos,
+                        .target = ptr,
+                    });
+                }
                 return self.hooks.append(
                     try vmt.init(
                         alloc,
-                        tools.addressToVtable(object_address),
-                        positions,
-                        targets,
+                        tools.addressToVtable(opt.object_address),
+                        opt.positions,
+                        opt.targets,
                     ),
                 );
             },
-            inline .safe_vmt => {
+            inline .safe_vmt => |opt| {
+                for (opt.positions, opt.targets) |pos, ptr| {
+                    try self.target_to_index.append(Node{
+                        .position = pos,
+                        .target = ptr,
+                    });
+                }
                 return self.hooks.append(
                     try safe_vmt.init(
                         alloc,
-                        tools.addressToVtable(object_address),
-                        positions,
-                        targets,
+                        tools.addressToVtable(opt.object_address),
+                        opt.positions,
+                        opt.targets,
                     ),
                 );
             },
-            inline else => @compileError("Please call `append` for non-vmt based methods instead."),
         }
     }
 };

@@ -70,7 +70,7 @@ fn restore(opt: *option.detour.Option) void {
     }
 }
 
-pub fn init(alloc: Allocator, target_ptr: anytype, victim_address: usize, comptime total_size: usize) interface.Hook {
+pub fn init(alloc: Allocator, target_ptr: anytype, victim_address: usize, total_size: usize) interface.Hook {
     tools.checkIsFnPtr(target_ptr);
 
     const opt = option.detour.Option.init(alloc, target_ptr, victim_address, total_size, &hook, &restore);

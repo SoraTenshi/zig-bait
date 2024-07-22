@@ -92,7 +92,7 @@ fn restore(opt: *option.safe_vmt.Option) void {
     opt.base.* = @as(tools.Vtable, @ptrFromInt(opt.safe_orig.?));
 }
 
-pub fn init(alloc: Allocator, base_class: tools.AbstractClass, comptime positions: []const usize, targets: []const usize) !interface.Hook {
+pub fn init(alloc: Allocator, base_class: tools.AbstractClass, positions: []const usize, targets: []const usize) !interface.Hook {
     const opt = try option.safe_vmt.Option.init(alloc, base_class, positions, targets, &hook, &restore);
     const self = interface.Hook.init(option.Option{ .safe_vmt = opt });
     return self;

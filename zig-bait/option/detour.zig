@@ -48,7 +48,7 @@ pub const Option = struct {
         alloc: Allocator,
         target_ptr: anytype,
         victim_address: usize,
-        comptime total_size: usize,
+        total_size: usize,
         hook: HookFunc,
         restore: RestoreFunc,
     ) Option {

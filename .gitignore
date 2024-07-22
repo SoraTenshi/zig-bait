@@ -1,3 +1,5 @@
+test-cpp/a.out
+test-cpp/*.dll
 .zig-cache/**
 zig-out/**
 zig-cache/**

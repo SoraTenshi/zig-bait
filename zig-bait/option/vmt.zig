@@ -32,7 +32,7 @@ pub const Option = struct {
     pub fn init(
         alloc: Allocator,
         base: AbstractClass,
-        comptime positions: []const usize,
+        positions: []const usize,
         targets: []const usize,
         hook: HookFunc,
         restore: RestoreFunc,
