@@ -195,7 +195,7 @@ pub const HookManager = struct {
 
 const t = std.testing;
 test "safe vmt" {
-    if (@import("builtin").os.tag == .windows) t.refAllDecls(safe_vmt);
+    comptime if (@import("builtin").os.tag == .windows) t.refAllDecls(safe_vmt);
 }
 
 test "vmt" {

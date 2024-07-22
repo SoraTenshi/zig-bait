@@ -10,13 +10,13 @@ pub const Address = union(enum) {
 
     pub fn init(ptr_type: anytype) Address {
         return switch (builtin.os.tag) {
-            .windows => Address{
+            inline .windows => Address{
                 .win_addr = @as(win.LPVOID, @ptrCast(ptr_type)),
             },
-            .linux => Address{
+            inline .linux => Address{
                 .lin_addr = @as([*]const u8, @ptrCast(ptr_type)),
             },
-            else => |a| @panic("The OS '" ++ @tagName(a) ++ "' is not supported."),
+            inline else => |a| @panic("The OS '" ++ @tagName(a) ++ "' is not supported."),
         };
     }
 };
@@ -42,11 +42,19 @@ pub fn setNewProtect(address: Address, size: usize, new_protect: usize) anyerror
     const len = if (size == 0) @sizeOf(usize) else size * @sizeOf(usize);
     switch (address) {
         inline .win_addr => |addr| {
+            if (builtin.os.tag != .windows) {
+                return error.WrongOs;
+            }
+
             var old: win.DWORD = undefined;
             try win.VirtualProtect(addr, @as(win.SIZE_T, len), @as(win.DWORD, @intCast(new_protect)), &old);
             return @as(usize, old);
         },
         inline .lin_addr => |addr| {
+            if (!builtin.os.tag.isBSD() and builtin.os.tag != .linux) {
+                return error.WrongOs;
+            }
+
             if (lin.mprotect(addr, len, new_protect) != 0) return error.LinuxMProtectFailed;
             return null;
         },
