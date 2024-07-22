@@ -143,14 +143,13 @@ pub const HookManager = struct {
     /// REMARK: Detour is not yet supported.
     pub fn append(
         self: *HookManager,
-        alloc: std.mem.Allocator,
         method: Method,
     ) !void {
         self.size += 1;
         switch (method) {
             inline .detour => |opt| {
                 return self.hooks.append(detour.init(
-                    alloc,
+                    self.alloc,
                     opt.source.address,
                     opt.target.address,
                     opt.target.len,
@@ -165,7 +164,7 @@ pub const HookManager = struct {
                 }
                 return self.hooks.append(
                     try vmt.init(
-                        alloc,
+                        self.alloc,
                         tools.addressToVtable(opt.object_address),
                         opt.positions,
                         opt.targets,
@@ -181,7 +180,7 @@ pub const HookManager = struct {
                 }
                 return self.hooks.append(
                     try safe_vmt.init(
-                        alloc,
+                        self.alloc,
                         tools.addressToVtable(opt.object_address),
                         opt.positions,
                         opt.targets,
