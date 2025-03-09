@@ -1,7 +1,8 @@
 .{
-    .name = "zig-bait",
-    .version = "0.0.1",
-    .minimum_zig_version = "0.13.0",
+    .name = .zig_bait,
+    .version = "0.0.2",
+    .minimum_zig_version = "0.14.0",
+    .fingerprint = 0xd243c7ab13378417,
 
     .paths = .{
         "README.md",
