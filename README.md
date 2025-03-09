@@ -13,7 +13,7 @@ In your project just add the dependency to your Zig dependencies: `zig fetch --s
 
 And then in your `build.zig`: 
 ```zig
-const bait = b.dependency("zig-bait", .{});
+const bait = b.dependency("zig_bait", .{});
 
 your_project.root_module.addImport("bait", bait.module("zig-bait"));
 ```
