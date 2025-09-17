@@ -6,6 +6,8 @@ pub fn build(b: *std.Build) void {
 
     const zig_bait_tools = b.createModule(.{
         .root_source_file = b.path("zig-bait-tools/zig-bait-tools.zig"),
+        .target = target,
+        .optimize = optimize,
     });
 
     const bait = b.addModule("zig-bait", .{
@@ -14,12 +16,12 @@ pub fn build(b: *std.Build) void {
             .name = "zig-bait-tools",
             .module = zig_bait_tools,
         }},
+        .target = target,
+        .optimize = optimize,
     });
 
     const bait_test = b.addTest(.{
-        .root_source_file = bait.root_source_file.?,
-        .target = target,
-        .optimize = optimize,
+        .root_module = bait,
     });
     bait_test.root_module.addImport("zig-bait-tools", zig_bait_tools);
 
